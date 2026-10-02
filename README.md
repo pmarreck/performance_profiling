@@ -20,13 +20,13 @@ nix develop -c ./cg --seed 15
 ```
 
 The first run reports UNBASELINED (exit 3) and saves the valid observation for
-review. Inspect the JSON or `performance-profile history`, then explicitly approve
+review. Inspect the JSON or `nix run . -- history`, then explicitly approve
 the printed ID after checking the work/shape/allocator coverage:
 
 ```bash
-performance-profile accept --run '<printed-id>' --reason 'Reviewed work and scaling'
-performance-profile run --mode cg --seed 15
-performance-profile run --mode mg --seed 15
+nix run . -- accept --run '<printed-id>' --reason 'Reviewed work and scaling'
+nix run . -- run --mode cg --seed 15
+nix run . -- run --mode mg --seed 15
 ```
 
 Each case/hardware cohort needs its own first approval. A fresh run after approval
@@ -36,9 +36,11 @@ running the benchmark again. Start a new ID to make a fresh observation. Changin
 the inputs or hardware cohort behind an existing ID is an error. Ordinary fresh
 runs are intentionally cumulative history, not a repeated business side effect.
 
-`./build` publishes the Nix-wrapped command under `bin/<os>/<arch>/`, ahead of the
-portable development entry point under Peter's PATH convention. Open a fresh
-terminal/re-source PATH if the new host directory was not admitted before build.
+`./build` publishes the Nix-wrapped command under `bin/<os>/<arch>/`. Host-specific
+PATH selection is the intended fleet convention, but the inspected local dotfiles
+still prefer portable `bin/` entries. Use `nix run . -- ...`, or the published host
+path directly, until that PATH migration is applied. Merely seeing the development
+script on PATH does not prove its project dependencies are present.
 The wrapper pins LuaJIT, cjson, luv, coreutils and printable-binary. The bare
 development script requires `nix develop -c`; a global LuaJIT alone is insufficient.
 

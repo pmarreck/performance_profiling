@@ -9,14 +9,19 @@
   Hyperfine runs after one warmup (range 562.3–588.1 ms). Command:
   `nix develop -c hyperfine --shell=none --warmup 1 --runs 5 ./test`.
   This is suite duration, not a production application's benchmark result.
+- After adding the startup-schema rejection regression, the same five-run
+  command measured 640.6 ms with sample SD 16.2 ms (range 627.1–665.1 ms).
 - Shared skill: frontmatter/name validation, complete installer suite and the
   isolated Linux Nix check passed. Both agent discovery roots resolve to the
   same physical skill files.
 
-The earlier eight-group suite passed on both native machines. Later additions
-include simultaneous writers, startup validation, malformed baseline rejection,
-source/configuration identity and a skipped-kernel mutation witness. The final
-commands below rerun the complete expanded suite and package before commit.
+The final eleven groups, including the Nix module evaluation contract, passed
+on both native machines before implementation commit `0101c3e`. The shared skill
+and guidance consolidation is commit `5068df8` in `llm_skills`.
+The startup-schema regression and its repair were then verified through both
+native suites and Nix package builds. Host-specific wrappers launched on Linux
+and Mac. The README records the still-pending dotfiles PATH migration rather than
+assuming the published wrapper already wins PATH lookup.
 
 ## Falsified failures
 

@@ -39,4 +39,15 @@ local mutant=dir..'/skipped work.lua'
 local file=assert(io.open(mutant,'wb')); assert(file:write(altered)); assert(file:close())
 local skipped=process.run({'luajit',mutant,'vector_sum','4096,8192','15'})
 assert(skipped.rc~=0 and skipped.stderr:find('independent result check failed',1,true),'work oracle accepted a skipped kernel')
+-- Startup timing must not re-label an unsupported adapter schema as valid.
+local wrong_schema=script:gsub('performance%-measurement/v1','unsupported/v999')
+local bad=dir..'/wrong schema.lua'
+file=assert(io.open(bad,'wb')); assert(file:write(wrong_schema)); assert(file:close())
+local fixture=assert(uv.fs_mkdtemp((os.getenv('TMPDIR') or '/tmp')..'/startup fixture.XXXXXX'))
+process.checked({'git','-C',fixture,'init','-q','-b','yolo'})
+process.checked({'git','-C',fixture,'-c','user.name=fixture','-c','user.email=fixture@example.invalid','commit','--allow-empty','-qm','fixture'})
+local configuration={schema='performance-project/v1',project='schema_fixture',history_url=url,identity={runtime='LuaJIT',build_mode='optimized',concurrency=1},cases={{name='startup',mode='bm',metric='startup_ns',comparison='absolute',sizes={1},bounds={1,1e10},ready_marker='performance-ready/v1',command={'luajit',bad,'{case}','{sizes}','{seed}'}}}}
+file=assert(io.open(fixture..'/profiling.json','wb')); assert(file:write(json.encode(configuration))); assert(file:close())
+local unsupported=command({'run','--config',fixture..'/profiling.json','--seed','15'})
+assert(unsupported.rc==1 and json.decode(unsupported.stdout)[1].verdict=='INVALID','startup silently accepted unsupported adapter schema')
 print('PASS: real workload complexity/memory gates, approval, history and provenance')

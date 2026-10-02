@@ -75,6 +75,7 @@ Exit 0 pass/approved, 1 failure/error, 2 usage, 3 unbaselined/inconclusive.
 				end
 				local ok,m=pcall(json.decode,payload)
 				if not ok then return {schema='performance-measurement/v1',correct=false,process=r,protocol_error=tostring(m)} end
+				if type(m)~='table' or m.schema~='performance-measurement/v1' then return {schema='performance-measurement/v1',correct=false,process=r,protocol_error='unsupported adapter schema'} end
 				if m.build_mode~=cfg.identity.build_mode then m.correct=false; m.protocol_error='build identity differs from project configuration' end
 				if m.correct~=true then return m end
 				m.process_startup_to_ready_ns=r.ready_ns; measurements[j]=m; startups[j]=r.ready_ns
