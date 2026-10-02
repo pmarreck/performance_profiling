@@ -1,0 +1,13 @@
+{
+	"schema": "performance-project/v1",
+	"project": "performance_profiling",
+	"history_url": "file:///var/lib/performance-profiling",
+	"identity": {"runtime": "LuaJIT-2.1", "build_mode": "optimized", "concurrency": 1},
+	"cases": [
+		{"name": "vector_sum", "definition": "vector-sum-v1", "mode": "cg", "metric": "operations", "ready_marker": "performance-ready/v1", "command": ["luajit", "tests/benchmark/pilot.lua", "{case}", "{sizes}", "{seed}"], "sizes": [4096,8192,16384,32768], "bounds": [1.99,2.01]},
+		{"name": "vector_allocation", "definition": "vector-allocation-v1", "mode": "mg", "metric": "peak_bytes", "ready_marker": "performance-ready/v1", "command": ["luajit", "tests/benchmark/pilot.lua", "{case}", "{sizes}", "{seed}"], "sizes": [4096,8192,16384,32768], "bounds": [1.99,2.01], "residual_allowance": 0},
+		{"name": "vector_cpu", "definition": "vector-sum-cpu-v1", "mode": "bm", "metric": "cpu_ns", "ready_marker": "performance-ready/v1", "command": ["luajit", "tests/benchmark/pilot.lua", "{case}", "{sizes}", "{seed}"], "sizes": [65536,131072,262144,524288], "bounds": [1,4]},
+		{"name": "vector_fixed_cpu", "definition": "vector-fixed-cpu-v1", "mode": "bm", "metric": "cpu_ns", "comparison": "absolute", "ready_marker": "performance-ready/v1", "command": ["luajit", "tests/benchmark/pilot.lua", "{case}", "{sizes}", "{seed}"], "sizes": [131072], "bounds": [1,1000000000]},
+		{"name": "vector_startup", "definition": "vector-startup-v1", "mode": "bm", "metric": "startup_ns", "comparison": "absolute", "ready_marker": "performance-ready/v1", "command": ["luajit", "tests/benchmark/pilot.lua", "{case}", "{sizes}", "{seed}"], "sizes": [1], "bounds": [1,10000000000]}
+	]
+}

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -u
+cd "$(dirname "$0")" || exit 1
+system=$(nix eval --impure --raw --expr builtins.currentSystem) || exit 1
+case "$system" in
+	x86_64-linux) destination=bin/linux/x86_64 ;;
+	aarch64-linux) destination=bin/linux/aarch64 ;;
+	aarch64-darwin) destination=bin/macos/aarch64 ;;
+	*) printf 'Unsupported native build system: %s\n' "$system" >&2; exit 2 ;;
+esac
+mkdir -p ".nix-out/$system" "$destination" || exit 1
+nix build . --out-link ".nix-out/$system/release" || exit 1
+ln -sfn "../../../.nix-out/$system/release/bin/performance-profile" "$destination/performance-profile"

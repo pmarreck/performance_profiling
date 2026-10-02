@@ -1,0 +1,6 @@
+/.nix-out/
+/result
+/.dirtree-state
+/bin/linux/
+/bin/macos/
+/bin/windows/

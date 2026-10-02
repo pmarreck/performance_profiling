@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -u
+source "${CAPTURE_LIB:-$HOME/dotfiles/bin/src/capture.bash}"
+out='' err='' rc=0
+failures=0
+capture ./bin/performance-profile --help
+if [ "$rc" != 0 ] || [[ "$out" != *'--history-url'* ]] || [[ "$out" != *'accept'* ]]; then printf 'FAIL: help\n'; failures=$((failures+1)); fi
+capture ./bin/performance-profile --about
+if [ "$rc" != 0 ] || [[ "$out" != performance-profile* ]] || [[ "$out" == *$'\n'* ]]; then printf 'FAIL: about\n'; failures=$((failures+1)); fi
+capture ./bin/performance-profile --no-such-flag
+if [ "$rc" != 2 ] || [ -z "$err" ]; then printf 'FAIL: invalid option\n'; failures=$((failures+1)); fi
+capture ./bin/performance-profile accept --run unknown --reason ''
+if [ "$rc" == 0 ]; then printf 'FAIL: empty approval reason\n'; failures=$((failures+1)); fi
+if [ "$failures" = 0 ]; then printf 'PASS: Bash CLI contract\n'; fi
+exit "$failures"

@@ -1,0 +1,113 @@
+#!/usr/bin/env luajit
+local here=debug.getinfo(1,'S').source:sub(2):match('^(.*)/[^/]+$') or '.'
+package.path=here..'/../src/?.lua;'..package.path
+local function main()
+	local uv=require('luv')
+	local json=require('json')
+	local options={config='profiling.json'}
+	local verb='run'
+	local keys={['--config']='config',['--history-url']='history_url',['--mode']='mode',['--case']='case',['--seed']='seed',['--run']='target',['--reason']='reason',['--run-id']='run_id'}
+	local i=1
+	while i<=#arg do
+		local a=arg[i]
+		if a=='--help' or a=='-h' then
+			io.write([[usage: performance-profile [run|history|accept] [options]
+  --config PATH       Project JSON configuration (default profiling.json)
+  --history-url URL   Override project history directory (absolute file:// URL)
+  --mode cg|mg|bm     Select gate/suite; omitted runs all configured cases
+  --case NAME         Select one named case
+  --seed TEXT         Reproducible fixture seed (random and reported if absent)
+  --run-id ID         Stable logical job ID; a completed identical rerun is a no-op
+  accept --run ID --reason TEXT   Approve an exact valid observation as a new epoch
+  --json              Structured JSON stdout (the default)
+  --simple            Plain status stderr (currently always plain)
+  --about             One-line version, purpose and runtime platform
+
+History URL precedence: CLI > PERFORMANCE_HISTORY_URL > project history_url.
+No automatic approval. One timing retry; diagnostics never enter the baseline.
+Exit 0 pass/approved, 1 failure/error, 2 usage, 3 unbaselined/inconclusive.
+]])
+			return 0
+		elseif a=='--about' then
+			local u=uv.os_uname(); io.write('performance-profile 0.1.0: complexity and memory gates with immutable external history ('..u.sysname..' '..u.machine..')\n'); return 0
+		elseif a=='run' or a=='history' or a=='accept' then verb=a
+		elseif a=='--json' or a=='--simple' then
+		elseif keys[a] then i=i+1; if not arg[i] then io.stderr:write('missing value for '..a..'\n'); return 2 end; options[keys[a]]=arg[i]
+		else io.stderr:write('unknown argument '..a..'\n'); return 2 end
+		i=i+1
+	end
+	if options.mode and options.mode~='cg' and options.mode~='mg' and options.mode~='bm' then io.stderr:write('invalid mode\n'); return 2 end
+	local process=require('process')
+	local config=require('config')
+	local cfgpath=assert(uv.fs_realpath(options.config))
+	local f=assert(io.open(cfgpath,'rb')); local cfg=config.validate(json.decode(f:read('*a'))); f:close()
+	local root=cfgpath:match('^(.*)/[^/]+$')
+	local storage=require('store').open(config.history_url(cfg,options,{PERFORMANCE_HISTORY_URL=os.getenv('PERFORMANCE_HISTORY_URL')}),cfg.project)
+	assert(storage.directory~=root and storage.directory:sub(1,#root+1)~=root..'/','history must be outside the measured project')
+	local runner=require('runner')
+	local provenance=require('provenance')
+	local enc=require('encoding')
+	local ports={records=function() return storage:read() end,write=function(r)
+		if r.command then
+			local encoded={}; for j,a in ipairs(r.command) do encoded[j]=enc.encode(a) end
+			r.command=encoded; r.command_encoding={name=enc.name,map_sha256=enc.map_sha256}
+			-- The full definition stores no duplicate raw argv bytes.
+			r.definition={name=r.case,metric=r.metric,mode=r.mode,sizes=r.definition.sizes,bounds=r.definition.bounds,policy=r.policy}
+		end
+		storage:write(r)
+	end,now=provenance.now,id=provenance.id,
+		identity=function(c) return provenance.identity(cfg,c) end,
+		snapshot=function()
+			local digest,p=provenance.snapshot(root,cfg)
+			p.uname_a=process.checked({'uname','-a'}):gsub('%s+$',''); p.load_average=uv.loadavg(); p.free_memory_bytes=uv.get_free_memory()
+			return digest,p
+		end,
+		measure=function(c,seed)
+			local measurements,startups={},{}
+			for j=1,(c.metric=='startup_ns' and 5 or 1) do
+				local r=process.run(config.command(c,seed),{cwd=root,ready_marker=c.ready_marker})
+				if r.rc~=0 or r.signal~=0 or r.timed_out then return {schema='performance-measurement/v1',correct=false,process=r} end
+				if r.stderr:find('DEBUG BUILD',1,true) then return {schema='performance-measurement/v1',correct=false,process=r} end
+				local payload=r.stdout
+				if c.ready_marker then
+					if not r.ready_ns then return {schema='performance-measurement/v1',correct=false,process=r,protocol_error='readiness marker missing'} end
+					payload=payload:sub(#c.ready_marker+2)
+				end
+				local ok,m=pcall(json.decode,payload)
+				if not ok then return {schema='performance-measurement/v1',correct=false,process=r,protocol_error=tostring(m)} end
+				if m.build_mode~=cfg.identity.build_mode then m.correct=false; m.protocol_error='build identity differs from project configuration' end
+				if m.correct~=true then return m end
+				m.process_startup_to_ready_ns=r.ready_ns; measurements[j]=m; startups[j]=r.ready_ns
+			end
+			if c.metric=='startup_ns' then
+				return {schema='performance-measurement/v1',correct=true,build_mode=cfg.identity.build_mode,phase='spawn-to-ready',rows={{size=c.sizes[1],samples={startup_ns=startups}}},diagnostics=measurements}
+			end
+			return measurements[1]
+		end}
+	if verb=='history' then
+		local rows=storage:read(); local lines={}; for j,r in ipairs(rows) do lines[j]=json.encode(r) end
+		io.write('['..table.concat(lines,',')..']\n'); return 0
+	elseif verb=='accept' then
+		local r=runner.accept(cfg,options.target,options.reason,ports)
+		io.write(json.encode(r)..'\n'); io.stderr:write('APPROVED '..r.case..' epoch '..r.id..'\n'); return 0
+	end
+	if not options.seed then
+		if options.run_id then
+			for _,r in ipairs(storage:read()) do if r.id:sub(1,#options.run_id+1)==options.run_id..'-' then options.seed=r.seed; break end end
+		end
+		options.seed=options.seed or provenance.id()
+	end
+	local rows=runner.run(cfg,options,ports)
+	local lines,rc={},0
+	for j,r in ipairs(rows) do
+		lines[j]=json.encode(r)
+		io.stderr:write(r.verdict..' '..r.case..' ('..r.attempts..' attempt(s), seed '..r.seed..', '..r.id..')\n')
+		if r.verdict=='UNBASELINED' or r.verdict=='INCONCLUSIVE' then if rc==0 then rc=3 end
+		elseif not r.eligible then rc=1 end
+	end
+	io.write('['..table.concat(lines,',')..']\n')
+	return rc
+end
+local ok,rc=pcall(main)
+if not ok then io.stderr:write('performance-profile: '..tostring(rc)..'\n'); os.exit(1) end
+os.exit(rc)
