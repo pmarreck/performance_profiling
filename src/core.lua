@@ -66,10 +66,12 @@ function M.evaluate(case, m, baseline)
 	for i=2,#means do ratios[i-1]=means[i]/means[i-1] end
 	local values=case.comparison=='absolute' and means or ratios
 	local r={ratios=ratios,values=values,comparison=case.comparison or 'growth',raw=m,retryable=timing,comparisons={}}
+	-- Noisy timing means support no conclusion about shape either: report the
+	-- noise (retryable) before judging declared bounds from those means.
+	if noise then r.verdict='INCONCLUSIVE'; r.reason='sample variation exceeds policy'; return r end
 	for _,v in ipairs(values) do
 		if v<case.bounds[1] or v>case.bounds[2] then r.verdict='SHAPE_FAIL'; r.reason='declared shape violated'; r.retryable=false; return r end
 	end
-	if noise then r.verdict='INCONCLUSIVE'; r.reason='sample variation exceeds policy'; return r end
 	r.approvable=true
 	if baseline.count==0 then r.verdict='UNBASELINED'; r.reason='no accepted cohort baseline'; r.retryable=false; return r end
 	if baseline.count<case.policy.minimum and not baseline.approved then r.verdict='INCONCLUSIVE'; r.reason='insufficient accepted history'; r.retryable=false; return r end

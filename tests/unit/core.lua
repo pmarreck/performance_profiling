@@ -74,4 +74,18 @@ check('SD band permits practically surprising value',core.evaluate(case,measurem
 case.metric='cpu_ns'
 local noisy=measurement({10,20,40,80}); noisy.rows[1].samples.cpu_ns={1,10,19}
 check('unresolved noise not green',core.run(case,baseline,function() return noisy end).verdict,'INCONCLUSIVE')
+-- A noisy timing sweep says nothing reliable about shape: one load spike at a
+-- single size (measured: 64, 68, 126, 147, 90 ms where 65 was expected) moved
+-- a linear sweep's ratios to 3.06 and 1.35. It is inconclusive and retryable,
+-- not a final shape failure.
+case.bounds={1.8,2.2}
+local spiked=measurement({10,20,40,80}); spiked.rows[2].samples.cpu_ns={20,21,40,45,28}
+check('noisy timing shape is inconclusive',core.evaluate(case,spiked,baseline).verdict,'INCONCLUSIVE')
+check('noisy timing shape is retryable',core.evaluate(case,spiked,baseline).retryable,true)
+local spike_attempts=0
+check('noisy shape then clean sweep passes on retry',core.run(case,baseline,function() spike_attempts=spike_attempts+1 return spike_attempts==1 and spiked or measurement({10,20,40,80}) end).verdict,'PASS_ON_RETRY')
+check('clean timing shape violation still fails',core.evaluate(case,measurement({10,20,80,160}),baseline).verdict,'SHAPE_FAIL')
+case.metric='operations'
+local spiked_ops=measurement({10,20,40,80}); spiked_ops.rows[2].samples.operations={20,21,40,45,28}
+check('deterministic metric shape violation is not excused as noise',core.evaluate(case,spiked_ops,baseline).verdict,'SHAPE_FAIL')
 print('PASS: '..tests..' functional assertions')
