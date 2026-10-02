@@ -116,8 +116,8 @@ build sandbox; do not put writes to shared history inside a derivation. Cached
 checks are past observations. The deterministic policy/adapter tests do run in
 the package's isolated Nix check.
 
-Provision user and actual CI access to the history directory. The Thelio worker
-is user/group `mechatron-prime`, uses `ProtectSystem=strict`, and currently admits
+Provision user and actual CI access to the history directory. A CI worker running
+as a hardened systemd service (for example with `ProtectSystem=strict`) admits
 writes only beneath its declared state directories. A directory merely writable
 on the host is insufficient inside that service's mount namespace. Use the
 optional [storage module](nix/history-storage.nix) or an equivalent approved

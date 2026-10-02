@@ -5,7 +5,7 @@ Approved contract: docs/CONTRACT.md. One complete entry point: ./test.
 ## Next adoption
 
 - [ ] Integrate one real decoder benchmark through the shared CLI and its complete ./test, preserving owner-approved baseline initialization.
-- [ ] Coordinate declarative shared-history access and fresh outside-sandbox execution with Mechatron's owner; verify an actual service-context write before claiming CI integration.
+- [ ] Coordinate declarative shared-history access and fresh outside-sandbox execution with the CI owner; verify an actual service-context write before claiming CI integration.
 - [ ] Add bounded process-tree/output handling for adapters that detach descendants; presently require benchmark commands to close their inherited pipes on exit.
 - [ ] Execute Linux ARM64 natively before claiming runtime support; assess native Windows and GPU adapters only with an approved consuming use case.
 

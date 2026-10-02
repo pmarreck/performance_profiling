@@ -4,7 +4,7 @@
 
 - Linux x86_64: complete `nix develop -c ./test`, Nix package check/build and
   host-specific executable publication.
-- Mac ARM64: complete native suite and native Nix package check/build on `m4max`.
+- Mac ARM64: complete native suite and native Nix package check/build on an Apple Silicon Mac.
 - The complete Linux suite averaged 576.1 ms with sample SD 12.5 ms over five
   Hyperfine runs after one warmup (range 562.3–588.1 ms). Command:
   `nix develop -c hyperfine --shell=none --warmup 1 --runs 5 ./test`.
