@@ -3,6 +3,7 @@ local process=require('process')
 local json=require('json')
 local core=require('core')
 local enc=require('encoding')
+local cpuset=require('cpus')
 local M={}
 local function read(path)
 	local f=assert(io.open(path,'rb')); local bytes=assert(f:read('*a')); assert(f:close()); return bytes
@@ -78,7 +79,7 @@ function M.identity(cfg,case)
 		local f=io.open('/proc/cpuinfo','rb')
 		if f then local data=f:read('*a'); f:close(); features=data:match('\nflags%s*:%s*([^\n]+)') or data:match('\nFeatures%s*:%s*([^\n]+)') or features end
 	end
-	local hardware={version='cohort/v1',os=osname.sysname,arch=osname.machine,cpu=cpus[1] and cpus[1].model or 'unavailable',features=features,logical_cpus=#cpus,identity=cfg.identity,metric=case.metric,sizes=case.sizes,comparison=case.comparison or 'growth',case_definition=case.definition or case.name,measurement_method='mean-per-size/v1'}
+	local hardware={version='cohort/v1',os=osname.sysname,arch=osname.machine,cpu=cpus[1] and cpus[1].model or 'unavailable',features=features,logical_cpus=#cpus,identity=cfg.identity,metric=case.metric,sizes=case.sizes,comparison=case.comparison or 'growth',case_definition=case.definition or case.name,measurement_method='mean-per-size/v1',cores=case.cores,affinity=cpuset.allowed() and 'taskset' or 'unenforced'}
 	return process.sha256(json.encode(hardware)),hardware
 end
 function M.now()

@@ -64,8 +64,20 @@ Exit 0 pass/approved, 1 failure/error, 2 usage, 3 unbaselined/inconclusive.
 		end,
 		measure=function(c,seed)
 			local measurements,startups={},{}
+			-- Run on exactly c.cores CPUs: the first of PERFORMANCE_CPUS (or of the
+			-- allowed set) under taskset on Linux; elsewhere the count is passed
+			-- on but not enforced (the cohort records which).
+			local cpuset=require('cpus')
+			local argv,cpus_text=config.command(c,seed),nil
+			local allowed=cpuset.allowed()
+			if allowed then
+				local override=os.getenv('PERFORMANCE_CPUS')
+				local ok,list=pcall(cpuset.select,override and cpuset.parse(override) or allowed,c.cores)
+				if not ok then return {schema='performance-measurement/v1',correct=false,protocol_error='cannot pin '..c.cores..' cores: '..tostring(list)} end
+				argv=cpuset.pin(argv,list); cpus_text=cpuset.format(list)
+			end
 			for j=1,(c.metric=='startup_ns' and 5 or 1) do
-				local r=process.run(config.command(c,seed),{cwd=root,ready_marker=c.ready_marker})
+				local r=process.run(argv,{cwd=root,ready_marker=c.ready_marker,env={PERFORMANCE_CORES=tostring(c.cores)}})
 				if r.rc~=0 or r.signal~=0 or r.timed_out then return {schema='performance-measurement/v1',correct=false,process=r} end
 				if r.stderr:find('DEBUG BUILD',1,true) then return {schema='performance-measurement/v1',correct=false,process=r} end
 				local payload=r.stdout
@@ -78,10 +90,10 @@ Exit 0 pass/approved, 1 failure/error, 2 usage, 3 unbaselined/inconclusive.
 				if type(m)~='table' or m.schema~='performance-measurement/v1' then return {schema='performance-measurement/v1',correct=false,process=r,protocol_error='unsupported adapter schema'} end
 				if m.build_mode~=cfg.identity.build_mode then m.correct=false; m.protocol_error='build identity differs from project configuration' end
 				if m.correct~=true then return m end
-				m.process_startup_to_ready_ns=r.ready_ns; measurements[j]=m; startups[j]=r.ready_ns
+				m.process_startup_to_ready_ns=r.ready_ns; m.cores=c.cores; m.cpus=cpus_text; measurements[j]=m; startups[j]=r.ready_ns
 			end
 			if c.metric=='startup_ns' then
-				return {schema='performance-measurement/v1',correct=true,build_mode=cfg.identity.build_mode,phase='spawn-to-ready',rows={{size=c.sizes[1],samples={startup_ns=startups}}},diagnostics=measurements}
+				return {schema='performance-measurement/v1',correct=true,build_mode=cfg.identity.build_mode,phase='spawn-to-ready',rows={{size=c.sizes[1],samples={startup_ns=startups}}},cores=c.cores,cpus=cpus_text,diagnostics=measurements}
 			end
 			return measurements[1]
 		end}

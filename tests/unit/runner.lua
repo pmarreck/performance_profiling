@@ -1,7 +1,7 @@
 package.path='./src/?.lua;'..package.path
 local runner=require('runner')
 local json=require('json')
-local cfg=require('config').validate({schema='performance-project/v1',project='fixture',history_url='file:///tmp/outside',identity={runtime='test',build_mode='optimized',concurrency=1},cases={{name='linear',mode='cg',metric='cpu_ns',command={'bench'},sizes={10,20},bounds={1,4}}}})
+local cfg=require('config').validate({schema='performance-project/v1',project='fixture',history_url='file:///tmp/outside',identity={runtime='test',build_mode='optimized',concurrency=1},cases={{cores=1,name='linear',mode='cg',metric='cpu_ns',command={'bench'},sizes={10,20},bounds={1,4}}}})
 local function m(mult)
 	return {schema='performance-measurement/v1',correct=true,build_mode='optimized',rows={{size=10,samples={cpu_ns={10,10,10}}},{size=20,samples={cpu_ns={20*mult,20*mult,20*mult}}}}}
 end

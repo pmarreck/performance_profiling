@@ -8,7 +8,7 @@ else
 	printf 'FAIL: required module checks unavailable; run nix develop -c ./test\n' >&2
 	failures=$((failures+1))
 fi
-for suite in tests/unit/core.lua tests/unit/config.lua tests/unit/runner.lua tests/unit/encoding.lua tests/integration/storage.lua tests/integration/process.lua tests/integration/provenance.lua tests/integration/concurrent.lua tests/integration/pilot.lua; do
+for suite in tests/unit/core.lua tests/unit/cpus.lua tests/unit/config.lua tests/unit/runner.lua tests/unit/encoding.lua tests/integration/storage.lua tests/integration/process.lua tests/integration/provenance.lua tests/integration/concurrent.lua tests/integration/pilot.lua; do
 	if luajit "$suite"; then :; else failures=$((failures+1)); fi
 done
 if ./tests/cli/test_cli; then :; else failures=$((failures+1)); fi

@@ -1,7 +1,7 @@
 package.path='./src/?.lua;'..package.path
 local config=require('config')
 local core=require('core')
-local cfg={schema='performance-project/v1',project='pilot',history_url='file:///tmp/history',identity={runtime='LuaJIT',build_mode='optimized',concurrency=1},cases={{name='linear',mode='cg',metric='operations',command={'echo','{case}','{sizes}','{seed}',''},sizes={10,20,40,80},bounds={1.8,2.2}}}}
+local cfg={schema='performance-project/v1',project='pilot',history_url='file:///tmp/history',identity={runtime='LuaJIT',build_mode='optimized',concurrency=1},cases={{cores=1,name='linear',mode='cg',metric='operations',command={'echo','{case}','{sizes}','{seed}',''},sizes={10,20,40,80},bounds={1.8,2.2}}}}
 local original=cfg
 cfg=config.validate(cfg)
 assert(not original.cases[1].policy,'validation mutated caller-owned configuration')
@@ -31,4 +31,12 @@ local base=core.baseline({approve},'linear','cpu1','new',c.policy)
 assert(base.count==1 and base.approved)
 local second={schema=approve.schema,kind='approval',id='fork',parent_epoch='root',case='linear',cohort='cpu1'}
 assert(not pcall(core.epoch,{approve,second},'linear','cpu1'),'approval forks silently won')
-print('PASS: configuration, precedence, argv and epoch contracts')
+-- Every case declares how many cores it is measured on (1 for single-core,
+-- more for multicore runs); there is no implicit default.
+do
+	local cores_cfg={schema='performance-project/v1',project='pilot',history_url='file:///tmp/history',identity={runtime='LuaJIT',build_mode='optimized',concurrency=1},cases={{name='linear',mode='cg',metric='operations',command={'echo'},sizes={10,20},bounds={1.8,2.2}}}}
+	assert(not pcall(config.validate,cores_cfg),'case without cores accepted')
+	for _,bad in ipairs({0,-1,1.5,'2'}) do cores_cfg.cases[1].cores=bad; assert(not pcall(config.validate,cores_cfg),'invalid cores accepted: '..tostring(bad)) end
+	for _,good in ipairs({1,12}) do cores_cfg.cases[1].cores=good; assert(pcall(config.validate,cores_cfg),'valid cores rejected: '..good) end
+end
+print('PASS: configuration, precedence, argv, epoch and cores contracts')

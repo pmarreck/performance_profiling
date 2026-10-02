@@ -50,6 +50,14 @@ policy and epoch in the verdict. Zero baselines need a declared absolute floor.
 Evaluate declared shape/resource limits separately; never let noisy history
 excuse an intrinsically invalid workload. Finite sweeps do not prove Big-O.
 
+Peter added on October 2, 2026: every case declares its core count, and
+workloads are measured both single-core and multicore (12 cores) as separate
+cases, with the count noted in the record and the cohort. Linux pins with
+taskset; platforms without an affinity API record the count as unenforced.
+A timing sweep whose samples exceed the noise policy is inconclusive and
+retryable before any declared-shape judgment; only a deterministic metric or
+a clean timing sweep can fail its declared shape.
+
 ## Retry and approval
 
 An otherwise valid timing deviation or noisy timing sweep gets exactly one

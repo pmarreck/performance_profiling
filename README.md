@@ -78,6 +78,20 @@ All values/policies/reference IDs are recorded before a new observation can ente
 future comparisons. Approval is explicit caller authority, not cryptographic
 proof that a human personally typed the command.
 
+### Cores: single-core and multicore cases
+
+Every case declares `cores`, the number of CPUs it is measured on. Measure a
+workload twice, as separate cases: `cores: 1` (single-core) and a multicore
+count (12 by default policy), because some code parallelizes underneath and
+some does not, and one measurement cannot show both. On Linux the runner runs
+the command under `taskset -c` on the first `cores` CPUs of `PERFORMANCE_CPUS`
+(a cpulist such as `0-11`) or of its own allowed set; fewer available CPUs is
+an error, never a smaller measurement. Elsewhere the count is passed on but not
+enforced. Every command receives `PERFORMANCE_CORES`, so parallel code can size
+its pool. The core count and the enforcement method (`taskset` or
+`unenforced`) are part of the cohort, so single-core and multicore results
+never share a baseline; each record keeps the exact CPU list (`cpus`).
+
 ## Adapter protocol
 
 The command writes one JSON object conforming to [the protocol](docs/PROTOCOL.md).

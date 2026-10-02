@@ -13,7 +13,8 @@
 			all = nixpkgs.lib.genAttrs systems;
 			pkgsFor = system: nixpkgs.legacyPackages.${system};
 			luaFor = pkgs: pkgs.luajit.withPackages (p: [ p.lua-cjson p.luv ]);
-			tools = pkgs: [ (luaFor pkgs) pkgs.bash pkgs.coreutils pkgs.gitMinimal ];
+			# util-linux provides taskset for pinned (single-core/multicore) cases on Linux.
+			tools = pkgs: [ (luaFor pkgs) pkgs.bash pkgs.coreutils pkgs.gitMinimal ] ++ pkgs.lib.optionals pkgs.stdenv.hostPlatform.isLinux [ pkgs.util-linux ];
 			package = system:
 				let pkgs = pkgsFor system;
 				in pkgs.stdenvNoCC.mkDerivation {

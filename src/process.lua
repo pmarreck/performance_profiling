@@ -9,7 +9,13 @@ function M.run(argv,options)
 	local clock=options.clock or function() return tonumber(uv.hrtime()) end
 	local started,ready_ns=clock(),nil
 	local timer=uv.new_timer()
-	handle=uv.spawn(argv[1],{args=args,cwd=options.cwd,stdio={stdin,stdout,stderr}},function(code,sig)
+	local env
+	if options.env then
+		env={}
+		for k,v in pairs(uv.os_environ()) do if options.env[k]==nil then env[#env+1]=k..'='..v end end
+		for k,v in pairs(options.env) do env[#env+1]=k..'='..v end
+	end
+	handle=uv.spawn(argv[1],{args=args,cwd=options.cwd,env=env,stdio={stdin,stdout,stderr}},function(code,sig)
 		rc,signal=code,sig; timer:stop(); timer:close(); handle:close()
 	end)
 	if not handle then

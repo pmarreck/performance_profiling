@@ -37,4 +37,5 @@ for text in sizes:gmatch('[^,]+') do
 end
 io.write(json.encode({schema='performance-measurement/v1',correct=true,build_mode='optimized',runtime=jit.version,seed=seed,
 	startup={phase='adapter-enter-to-ready',wall_ns=ready,excludes='interpreter startup and initial luv load'},
-	allocator_coverage='malloc requests for input vector only; Lua runtime excluded',rows=rows})..'\n')
+	allocator_coverage='malloc requests for input vector only; Lua runtime excluded',rows=rows,
+	cores_env=os.getenv('PERFORMANCE_CORES'),cpus_seen=(function() local f=io.open('/proc/self/status','rb') if not f then return nil end local s=f:read('*a') f:close() return s:match('Cpus_allowed_list:%s*([^\n]+)') end)()})..'\n')

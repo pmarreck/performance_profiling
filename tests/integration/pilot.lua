@@ -25,6 +25,15 @@ for _,mode in ipairs({'cg','mg'}) do
 	assert(pass.provenance.git.head:match('^[a-f0-9]+$'))
 	assert(pass.datetime_utc:match('%.%d%d%dZ$'))
 	assert(pass.command_encoding and pass.provenance.uname_a)
+	-- The case's core count reached the adapter, and on Linux the adapter
+	-- ran on exactly the recorded CPUs.
+	local raw=pass.selected.raw
+	assert(raw.cores_env=='1','adapter saw PERFORMANCE_CORES='..tostring(raw.cores_env))
+	assert(pass.hardware.cores==1)
+	if pass.hardware.affinity=='taskset' then
+		assert(raw.cpus and raw.cpus==raw.cpus_seen,'adapter ran on '..tostring(raw.cpus_seen)..', recorded '..tostring(raw.cpus))
+		assert(not raw.cpus:find('[,-]'),'single-core case pinned to '..raw.cpus)
+	end
 end
 local history=command({'history','--history-url',url})
 assert(history.rc==0 and #json.decode(history.stdout)==6)
@@ -46,7 +55,7 @@ file=assert(io.open(bad,'wb')); assert(file:write(wrong_schema)); assert(file:cl
 local fixture=assert(uv.fs_mkdtemp((os.getenv('TMPDIR') or '/tmp')..'/startup fixture.XXXXXX'))
 process.checked({'git','-C',fixture,'init','-q','-b','yolo'})
 process.checked({'git','-C',fixture,'-c','user.name=fixture','-c','user.email=fixture@example.invalid','commit','--allow-empty','-qm','fixture'})
-local configuration={schema='performance-project/v1',project='schema_fixture',history_url=url,identity={runtime='LuaJIT',build_mode='optimized',concurrency=1},cases={{name='startup',mode='bm',metric='startup_ns',comparison='absolute',sizes={1},bounds={1,1e10},ready_marker='performance-ready/v1',command={'luajit',bad,'{case}','{sizes}','{seed}'}}}}
+local configuration={schema='performance-project/v1',project='schema_fixture',history_url=url,identity={runtime='LuaJIT',build_mode='optimized',concurrency=1},cases={{cores=1,name='startup',mode='bm',metric='startup_ns',comparison='absolute',sizes={1},bounds={1,1e10},ready_marker='performance-ready/v1',command={'luajit',bad,'{case}','{sizes}','{seed}'}}}}
 file=assert(io.open(fixture..'/profiling.json','wb')); assert(file:write(json.encode(configuration))); assert(file:close())
 local unsupported=command({'run','--config',fixture..'/profiling.json','--seed','15'})
 assert(unsupported.rc==1 and json.decode(unsupported.stdout)[1].verdict=='INVALID','startup silently accepted unsupported adapter schema')
