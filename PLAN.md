@@ -19,3 +19,5 @@ Approved contract: docs/CONTRACT.md. One complete entry point: ./test.
 - [x] (2026-10-02 19:40 EDT) Noisy timing sweeps are INCONCLUSIVE (retryable) before declared-shape checks; found when a load spike turned a linear sweep into a final SHAPE_FAIL.
 - [x] (2026-10-02 19:45 EDT) Per-case `cores` (required), taskset pinning on Linux, `PERFORMANCE_CPUS` override, `PERFORMANCE_CORES` to the command, cores and affinity method in the cohort, exact CPU list in each record.
 - [ ] macOS: no affinity API; multicore counts there are unenforced. Look at thread-policy hints if Mac cohorts need it.
+- [x] (2026-10-02 22:20 EDT) Source snapshot once per run (before the first case, after the last); records written after the check.
+- [x] (2026-10-02 22:20 EDT) Optional per-case odd `processes`: median fresh process gates, all kept.

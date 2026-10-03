@@ -39,4 +39,14 @@ do
 	for _,bad in ipairs({0,-1,1.5,'2'}) do cores_cfg.cases[1].cores=bad; assert(not pcall(config.validate,cores_cfg),'invalid cores accepted: '..tostring(bad)) end
 	for _,good in ipairs({1,12}) do cores_cfg.cases[1].cores=good; assert(pcall(config.validate,cores_cfg),'valid cores rejected: '..good) end
 end
-print('PASS: configuration, precedence, argv, epoch and cores contracts')
+-- Optional processes: an odd positive count (the median process is selected);
+-- startup cases already spawn five processes and take none.
+do
+	local p_cfg={schema='performance-project/v1',project='pilot',history_url='file:///tmp/history',identity={runtime='LuaJIT',build_mode='optimized',concurrency=1},cases={{cores=1,name='linear',mode='cg',metric='cpu_ns',command={'echo'},sizes={10,20},bounds={1.8,2.2}}}}
+	assert(config.validate(p_cfg).cases[1].processes==1,'processes does not default to 1')
+	for _,bad in ipairs({0,2,4,-1,1.5,'3'}) do p_cfg.cases[1].processes=bad; assert(not pcall(config.validate,p_cfg),'invalid processes accepted: '..tostring(bad)) end
+	for _,good in ipairs({1,3,5}) do p_cfg.cases[1].processes=good; assert(pcall(config.validate,p_cfg),'valid processes rejected: '..good) end
+	p_cfg.cases[1].processes=3; p_cfg.cases[1].metric='startup_ns'; p_cfg.cases[1].comparison='absolute'; p_cfg.cases[1].sizes={1}; p_cfg.cases[1].ready_marker='ready'
+	assert(not pcall(config.validate,p_cfg),'processes accepted on a startup case')
+end
+print('PASS: configuration, precedence, argv, epoch, cores and processes contracts')

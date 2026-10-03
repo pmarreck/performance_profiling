@@ -88,4 +88,20 @@ check('clean timing shape violation still fails',core.evaluate(case,measurement(
 case.metric='operations'
 local spiked_ops=measurement({10,20,40,80}); spiked_ops.rows[2].samples.operations={20,21,40,45,28}
 check('deterministic metric shape violation is not excused as noise',core.evaluate(case,spiked_ops,baseline).verdict,'SHAPE_FAIL')
+-- Several fresh processes per case: the median process by total metric (the
+-- sum of its per-size means) is selected, so one process in a slower JIT
+-- mode does not decide the verdict. Classified over a set of process sets.
+local function proc(...)
+	local rows={}
+	for i,v in ipairs({...}) do rows[i]={size=i,samples={cpu_ns={v,v,v}}} end
+	return {schema='performance-measurement/v1',correct=true,build_mode='optimized',rows=rows}
+end
+local median_cases={
+	{{proc(10,20),proc(17,34),proc(11,22)},3},  -- slow middle process excluded
+	{{proc(30,60),proc(10,20),proc(20,40)},3},
+	{{proc(5,10)},1},
+	{{proc(10,20),proc(10,20),proc(10,20)},2},  -- ties order by process index
+}
+for i,c in ipairs(median_cases) do check('median process '..i,core.median_process(c[1],'cpu_ns'),c[2]) end
+check('even process count rejected',pcall(core.median_process,{proc(1,2),proc(2,4)},'cpu_ns'),false)
 print('PASS: '..tests..' functional assertions')

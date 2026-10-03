@@ -58,6 +58,10 @@ A timing sweep whose samples exceed the noise policy is inconclusive and
 retryable before any declared-shape judgment; only a deterministic metric or
 a clean timing sweep can fail its declared shape.
 
+Also added October 2, 2026: an optional per-case odd `processes` count gates on
+the median of several fresh processes and records them all; the source
+snapshot is taken once per run rather than around each case.
+
 ## Retry and approval
 
 An otherwise valid timing deviation or noisy timing sweep gets exactly one

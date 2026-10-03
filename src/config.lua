@@ -34,6 +34,9 @@ function M.validate(cfg)
 		assert(c.policy.minimum>=2 and c.policy.minimum%1==0 and c.policy.window>=c.policy.minimum and c.policy.window%1==0,'invalid history sample/window policy')
 		assert(c.policy.max_cv>0,'noise tolerance must be positive')
 		assert(c.residual_allowance==nil or number(c.residual_allowance),'invalid residual allowance')
+		if c.processes==nil then c.processes=1 end
+		assert(type(c.processes)=='number' and c.processes>=1 and c.processes%1==0 and c.processes%2==1,'processes must be an odd positive integer')
+		assert(c.metric~='startup_ns' or c.processes==1,'startup cases already spawn five processes; processes must be 1')
 		assert(type(c.cores)=='number' and c.cores>=1 and c.cores%1==0,'cores must be a positive integer: 1 for single-core, more for multicore')
 	end
 	return cfg

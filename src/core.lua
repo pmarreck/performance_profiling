@@ -120,4 +120,19 @@ function M.epoch(records,name,cohort)
 		epoch=next_id
 	end
 end
+-- Index of the median of an odd number of process measurements, ordered by
+-- the sum of each one's per-size mean of `metric` (ties by process order).
+-- Several fresh processes per case keep one process's JIT mode from deciding
+-- a verdict; every process stays in the record.
+function M.median_process(measurements, metric)
+	assert(#measurements%2==1,'an odd number of processes is required')
+	local order={}
+	for i,m in ipairs(measurements) do
+		local total=0
+		for _,row in ipairs(m.rows) do total=total+stats(row.samples[metric]) end
+		order[i]={i=i,total=total}
+	end
+	table.sort(order,function(x,y) if x.total~=y.total then return x.total<y.total end return x.i<y.i end)
+	return order[(#order+1)/2].i
+end
 return M

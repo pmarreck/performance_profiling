@@ -76,7 +76,7 @@ Exit 0 pass/approved, 1 failure/error, 2 usage, 3 unbaselined/inconclusive.
 				if not ok then return {schema='performance-measurement/v1',correct=false,protocol_error='cannot pin '..c.cores..' cores: '..tostring(list)} end
 				argv=cpuset.pin(argv,list); cpus_text=cpuset.format(list)
 			end
-			for j=1,(c.metric=='startup_ns' and 5 or 1) do
+			for j=1,(c.metric=='startup_ns' and 5 or c.processes) do
 				local r=process.run(argv,{cwd=root,ready_marker=c.ready_marker,env={PERFORMANCE_CORES=tostring(c.cores)}})
 				if r.rc~=0 or r.signal~=0 or r.timed_out then return {schema='performance-measurement/v1',correct=false,process=r} end
 				if r.stderr:find('DEBUG BUILD',1,true) then return {schema='performance-measurement/v1',correct=false,process=r} end
@@ -95,7 +95,14 @@ Exit 0 pass/approved, 1 failure/error, 2 usage, 3 unbaselined/inconclusive.
 			if c.metric=='startup_ns' then
 				return {schema='performance-measurement/v1',correct=true,build_mode=cfg.identity.build_mode,phase='spawn-to-ready',rows={{size=c.sizes[1],samples={startup_ns=startups}}},cores=c.cores,cpus=cpus_text,diagnostics=measurements}
 			end
-			return measurements[1]
+			if c.processes==1 then return measurements[1] end
+			-- Several fresh processes: gate on the median one, keep them all.
+			local chosen=require('core').median_process(measurements,c.metric)
+			-- A copy holds the list, so no record contains itself.
+			local selected={}
+			for k,v in pairs(measurements[chosen]) do selected[k]=v end
+			selected.processes=measurements; selected.selected_process=chosen
+			return selected
 		end}
 	if verb=='history' then
 		local rows=storage:read(); local lines={}; for j,r in ipairs(rows) do lines[j]=json.encode(r) end

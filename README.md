@@ -92,6 +92,19 @@ its pool. The core count and the enforcement method (`taskset` or
 `unenforced`) are part of the cohort, so single-core and multicore results
 never share a baseline; each record keeps the exact CPU list (`cpus`).
 
+### Processes: several fresh processes per case
+
+A JIT can settle into different modes in different processes (LuaJIT's trace
+abort penalties are randomized from a per-process seed, and its hot counters
+are keyed by code addresses). A case may declare `processes`, an odd count
+(default 1): the runner spawns that many fresh processes and gates on the median
+one by total metric across sizes, keeping every process's measurement in the
+record (`processes`, `selected_process`). Startup cases already spawn five.
+
+The source tree is snapshotted once before the first case and once after the
+last; a change anywhere in the run invalidates every case measured in it, and
+records are written only after that check.
+
 ## Adapter protocol
 
 The command writes one JSON object conforming to [the protocol](docs/PROTOCOL.md).
