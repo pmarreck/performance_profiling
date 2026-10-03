@@ -35,6 +35,23 @@ local snap=0
 adapter.snapshot=function() snap=snap+1; return snap==1 and 'before' or 'after',{} end
 rows=runner.run(cfg,{mode='cg'},adapter)
 assert(rows[1].verdict=='INVALID' and not rows[1].eligible)
+-- The source is snapshotted once before the first case and once after the
+-- last, not around every case (hashing a large tree per case dominated short
+-- gates), and a change anywhere in the run invalidates every case of it.
+do
+	local three=require('config').validate({schema='performance-project/v1',project='fixture',history_url='file:///tmp/outside',identity={runtime='test',build_mode='optimized',concurrency=1},cases={
+		{cores=1,name='a',mode='cg',metric='cpu_ns',command={'bench'},sizes={10,20},bounds={1,4}},
+		{cores=1,name='b',mode='cg',metric='cpu_ns',command={'bench'},sizes={10,20},bounds={1,4}},
+		{cores=1,name='c',mode='cg',metric='cpu_ns',command={'bench'},sizes={10,20},bounds={1,4}}}})
+	local snaps=0
+	local three_adapter=setmetatable({snapshot=function() snaps=snaps+1; return 'same',{} end,measure=function() return m(1) end,records=function() return {} end,write=function() end},{__index=adapter})
+	runner.run(three,{mode='cg'},three_adapter)
+	assert(snaps==2,'expected one snapshot before and one after the run, got '..snaps)
+	snaps=0
+	three_adapter.snapshot=function() snaps=snaps+1; return snaps==1 and 'before' or 'after',{} end
+	local changed=runner.run(three,{mode='cg'},three_adapter)
+	for _,r in ipairs(changed) do assert(r.verdict=='INVALID' and not r.eligible,'case '..r.case..' kept despite a source change during the run') end
+end
 -- History writes must not be silently skipped on errors.
 adapter.write=function() error('storage denied') end
 assert(not pcall(runner.run,cfg,{mode='cg'},adapter))

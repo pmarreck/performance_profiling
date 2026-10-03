@@ -5,7 +5,7 @@ local M={}
 function M.run(cfg,options,ports)
 	local history=ports.records()
 	local source,provenance=ports.snapshot()
-	local output={}
+	local output,pending={},{}
 	for _,case in ipairs(cfg.cases) do
 		if (not options.mode or case.mode==options.mode) and (not options.case or case.name==options.case) then
 			local cohort,hardware=ports.identity(case)
@@ -21,21 +21,30 @@ function M.run(cfg,options,ports)
 			local epoch=core.epoch(history,case.name,cohort)
 			local baseline=core.baseline(history,case.name,cohort,epoch,case.policy)
 			local result=core.run(case,baseline,function() return ports.measure(case,options.seed or '1') end)
-			local after=ports.snapshot()
-			if after~=source then result.verdict='INVALID'; result.reason='source or executable changed during measurement'; result.eligible=false; result.selected=nil end
 			result.schema='performance-history/v1'; result.kind='observation'
 			result.project=cfg.project; result.id=(options.run_id or ports.id())..'-'..case.name
 			result.datetime_utc=ports.now(); result.case=case.name; result.mode=case.mode
 			result.metric=case.metric; result.cohort=cohort; result.hardware=hardware
 			result.epoch=epoch; result.policy=case.policy; result.seed=options.seed or '1'
-			result.source=source; result.source_after=after; result.provenance=provenance
+			result.source=source; result.provenance=provenance
 			result.command=config.command(case,result.seed); result.definition=case
-			ports.write(result)
+			pending[#pending+1]=result
 			output[#output+1]=result
 			end
 		end
 	end
 	assert(#output>0,'no matching profiling cases')
+	-- One snapshot after the last case covers the whole run: a change anywhere
+	-- in it invalidates every case measured in it. Records are written only
+	-- after that check.
+	if #pending>0 then
+		local after=ports.snapshot()
+		for _,result in ipairs(pending) do
+			result.source_after=after
+			if after~=source then result.verdict='INVALID'; result.reason='source or executable changed during the run'; result.eligible=false; result.selected=nil end
+			ports.write(result)
+		end
+	end
 	return output
 end
 function M.accept(cfg,id,reason,ports)
