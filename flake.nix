@@ -1,11 +1,11 @@
 {
 	description = "Language-neutral complexity and memory gates with external immutable history";
-	inputs.nixpkgs.url = "github:NixOS/nixpkgs/9fbb54b33e91ee4ca368e35a78e0613c720600b3";
+	inputs.nixpkgs.url = "github:NixOS/nixpkgs/e513db7b0a65def6f6e17bb55195dfe510871944";
 	inputs.printable-binary = {
-		url = "github:pmarreck/printable_binary/3f697d53f447144e9ba1b73c4217b382f32b4d62";
+		url = "github:pmarreck/printable_binary/cdefa95e4590fa016967e0e6ccb3b96c19c44c7e";
 		flake = false;
 	};
-	inputs.dotfiles = { url = "github:pmarreck/dotfiles"; flake = false; };
+	inputs.dotfiles = { url = "github:pmarreck/dotfiles/20184a1fba9cc3fba49fa0ab6ff94431d1842ecc"; flake = false; };
 	outputs = { self, nixpkgs, printable-binary, dotfiles }:
 		let
 			moduleContract = import ./tests/nix/history-storage.nix { lib = nixpkgs.lib; };
