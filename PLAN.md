@@ -9,8 +9,8 @@ Approved contract: docs/CONTRACT.md. One complete entry point: ./test.
 - [x] Feedback-latency pilot for Validate: agree a phase-record contract, then a pure core for interval-union phases, budget verdicts and debounced summaries, plus a CLI that stores latency records apart from cg/mg baselines (context: docs/plan_context/feedback_latency.md). (done 2026-10-20 22:20 EDT)
 - [x] Measure the latency instrumentation's own overhead (snapshot hashing, history write) and report it with the tested revision. (done 2026-10-20 22:20 EDT; docs/VERIFICATION.md)
 - [ ] Validate adoption: pin this engine, wrap ./test phases, report the first instrumented full gate; then reassess per-span startup cost if a sub-second suite adopts it.
+	- [x] Propose to Validate a split of its Zig unit-test phase: build test binaries without running them (`./build --test`, compile span), then run them outside Nix (execute span), so execution time stops being mixed/UNMEASURED (context: docs/plan_context/feedback_latency.md). (done 2026-10-21 13:40 EDT; adopted by Validate, lands after its adoption commit)
 - [x] Mechatron Prime CI onboarding: choose existing flake attributes, commit .mechatron-prime/targets, converge the webhook and verify the exact pushed commit. (done 2026-10-20 22:26 EDT; af38b15 success, badge PASSING)
-	- [ ] Propose to Validate a split of its Zig unit-test phase: build test binaries without running them (`./build --test`, compile span), then run them outside Nix (execute span), so execution time stops being mixed/UNMEASURED (context: docs/plan_context/feedback_latency.md).
 - [ ] Agree hook placement for latency summaries with Turing before touching any agent-global configuration.
 
 ## Next adoption
@@ -22,7 +22,6 @@ Approved contract: docs/CONTRACT.md. One complete entry point: ./test.
 
 ## First implementation
 
-- [x] Create the shared performance-profiling skill and consolidate active guidance after recoverable backups (done 2026-10-02 14:04 EDT; llm_skills 5068df8).
 - [x] (2026-10-02 19:40 EDT) Noisy timing sweeps are INCONCLUSIVE (retryable) before declared-shape checks; found when a load spike turned a linear sweep into a final SHAPE_FAIL.
 - [x] (2026-10-02 19:45 EDT) Per-case `cores` (required), taskset pinning on Linux, `PERFORMANCE_CPUS` override, `PERFORMANCE_CORES` to the command, cores and affinity method in the cohort, exact CPU list in each record.
 - [ ] macOS: no affinity API; multicore counts there are unenforced. Look at thread-policy hints if Mac cohorts need it.

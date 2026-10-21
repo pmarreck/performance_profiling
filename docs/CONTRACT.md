@@ -136,6 +136,15 @@ work never reads as a fresh pass within budget. Records use their own schema
 baselines. No argv or environment is stored. Agent hook placement for the
 summary is not yet decided and nothing is claimed deployed.
 
+A consumer that passes its job identity through an environment variable must
+not let a nested run of its own test runner inherit it. Otherwise the nested
+run's spans, including deliberately failing probes, join the outer job and
+corrupt its correctness verdict. Consume and unset the variable in each runner,
+and hand it explicitly only to that runner's own spans. A phase that compiles
+and executes in one step, such as a Nix check derivation, is `mixed`. To get an
+execution verdict, build the test executables first (a `compile` span) and run
+them outside the build (an `execute` span).
+
 ## Evidence and adoption
 
 Tests inject measurement samples, clocks, processes and storage. Real-adapter tests

@@ -8,3 +8,7 @@ Completed PLAN.md items retired by plan-retire, oldest retirement first.
 - [x] [First implementation] Implement atomic project-named file:// records with concurrent-write and immutable identity checks (done 2026-10-02 14:04 EDT; 0101c3e).
 - [x] [First implementation] Add CLI, injected adapters, complete real cg/mg lifecycle, skipped-work oracle witness and distinct code-statistics/source identity (done 2026-10-02 14:04 EDT; 0101c3e).
 - [x] [First implementation] Add pinned Nix packaging and native Linux/Mac checks; record measured suite budget and platform/deployment limits in docs/VERIFICATION.md (done 2026-10-02 14:04 EDT; 0101c3e).
+
+## Retired 2026-10-21
+
+- [x] [First implementation] Create the shared performance-profiling skill and consolidate active guidance after recoverable backups (done 2026-10-02 14:04 EDT; llm_skills 5068df8).
