@@ -73,6 +73,20 @@ Most per-span cost is LuaJIT startup before the wrapper's first timestamp; it is
 reported as unattributed time. Loading the printable-binary encoding map cost
 4.9 ms per span until the span path stopped loading it.
 
+## Per-case deadline in a consuming project, October 21, 2026
+
+The per-case `timeout_ms` option (2d48eab) came from a consuming project's
+local patch. That project's committed control,
+[`tests/performance_budget_test.mjs`](https://github.com/pmarreck/random/blob/c5bf5d56f2d745db502bb80ee52ef6ec7125fdfb/tests/performance_budget_test.mjs),
+runs a 50 ms child with default, 5 ms and 5000 ms limits. It checks the
+persisted effective budgets and refuses `0`, `-1`, `1.5`, the string `"1000"`
+and `3600001`. Against an engine without the option it fails (the short case
+does not time out: 3 completed cases where 1 was expected). Against the patched
+engine it passes. The project's campaign adapters do not read `timeout_ms` from
+older observations, so earlier records keep their engine identity. Adopting
+this engine starts a new measurement identity and approves no baseline.
+Process-tree cleanup is outside that control.
+
 ## Boundaries
 
 No production baseline was automatically approved. No whole-fleet integration,
