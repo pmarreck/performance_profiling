@@ -33,3 +33,20 @@ warning during the pilot, never a kill deadline.
   side; until then that phase is mixed/UNMEASURED.
 - Wants per-script spans for all 165 CLI scripts; summary shows totals plus N slowest.
 - Never store argv or environment. Script basenames as span names are fine.
+
+## Splitting a compile-and-run phase (2026-10-21)
+
+Validate runs its Zig unit tests as one `nix build .#checks.<system>.test`
+span. That derivation compiles and executes in one step, so the span is
+`mixed`, and a cached derivation does not execute the tests at all. The
+proposed split is to have `./build --test` produce the two test executables
+(core and FFI, ReleaseSafe, test trust) as a Nix package without running them,
+and have `./test` record that as a `compile` span. `./test` then runs each
+binary directly as an `execute` span. A cached build then still yields a
+fresh execution. `checks.test` stays as the sandboxed CI target, and `./test`
+stops building it, so the suite does not run twice. Open points for Validate:
+the runtime environment the sandbox provided (TERM, fixtures, ffmpeg, HOME),
+how a test inventory is read from plain-mode test output, and whether
+`./build`'s network dependency-freshness check should run inside `./test`.
+The spans stay in `./test` and `./build` stays a plain builder, because a
+standalone `./build` has no latency job to record into.

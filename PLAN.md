@@ -10,6 +10,7 @@ Approved contract: docs/CONTRACT.md. One complete entry point: ./test.
 - [x] Measure the latency instrumentation's own overhead (snapshot hashing, history write) and report it with the tested revision. (done 2026-10-20 22:20 EDT; docs/VERIFICATION.md)
 - [ ] Validate adoption: pin this engine, wrap ./test phases, report the first instrumented full gate; then reassess per-span startup cost if a sub-second suite adopts it.
 - [x] Mechatron Prime CI onboarding: choose existing flake attributes, commit .mechatron-prime/targets, converge the webhook and verify the exact pushed commit. (done 2026-10-20 22:26 EDT; af38b15 success, badge PASSING)
+	- [ ] Propose to Validate a split of its Zig unit-test phase: build test binaries without running them (`./build --test`, compile span), then run them outside Nix (execute span), so execution time stops being mixed/UNMEASURED (context: docs/plan_context/feedback_latency.md).
 - [ ] Agree hook placement for latency summaries with Turing before touching any agent-global configuration.
 
 ## Next adoption
