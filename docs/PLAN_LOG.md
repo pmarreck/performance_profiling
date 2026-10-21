@@ -13,3 +13,5 @@ Completed PLAN.md items retired by plan-retire, oldest retirement first.
 
 - [x] [First implementation] Create the shared performance-profiling skill and consolidate active guidance after recoverable backups (done 2026-10-02 14:04 EDT; llm_skills 5068df8).
 - [x] [First implementation] (2026-10-02 19:40 EDT) Noisy timing sweeps are INCONCLUSIVE (retryable) before declared-shape checks; found when a load spike turned a linear sweep into a final SHAPE_FAIL.
+- [x] [First implementation] (2026-10-02 19:45 EDT) Per-case `cores` (required), taskset pinning on Linux, `PERFORMANCE_CPUS` override, `PERFORMANCE_CORES` to the command, cores and affinity method in the cohort, exact CPU list in each record.
+- [x] [First implementation] (2026-10-02 22:20 EDT) Source snapshot once per run (before the first case, after the last); records written after the check.

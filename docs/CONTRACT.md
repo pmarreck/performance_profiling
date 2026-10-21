@@ -143,7 +143,10 @@ corrupt its correctness verdict. Consume and unset the variable in each runner,
 and hand it explicitly only to that runner's own spans. A phase that compiles
 and executes in one step, such as a Nix check derivation, is `mixed`. To get an
 execution verdict, build the test executables first (a `compile` span) and run
-them outside the build (an `execute` span).
+them outside the build (an `execute` span). A span may declare one skip exit
+code (`--skip-exit 77`, the automake convention). That exact unsignaled exit is
+recorded as a skip with its real exit status and makes the job INCOMPLETE; any
+other nonzero exit remains FAIL, and a skip never masks another span's failure.
 
 ## Evidence and adoption
 

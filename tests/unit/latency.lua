@@ -120,6 +120,29 @@ do
 	assert(r.correctness=='ERROR','worst correctness outcome must win')
 end
 
+-- A span may declare one skip exit code (automake's 77). Classified over a set
+-- of outcomes: only that exact code, unsignaled, is a skip (INCOMPLETE); any
+-- other failure stays FAIL, and the real exit status is kept, not rewritten.
+do
+	local cases={
+		{{exit_code=77,skip_exit=77},'INCOMPLETE',true},
+		{{exit_code=0,skip_exit=77},'PASS',false},
+		{{exit_code=1,skip_exit=77},'FAIL',false},
+		{{exit_code=78,skip_exit=77},'FAIL',false},
+		{{exit_code=77},'FAIL',false},
+		{{exit_code=77,skip_exit=77,signal=9},'FAIL',false},
+		{{exit_code=127,skip_exit=77,spawn_error='ENOENT'},'ERROR',false},
+	}
+	for i,c in ipairs(cases) do
+		local r=latency.evaluate(job({span('cli-rar','execute',0,1,c[1])}),policy)
+		assert(r.correctness==c[2],('skip case %d gave %s, wanted %s'):format(i,r.correctness,c[2]))
+		assert(has(r.correctness_reasons,'cli-rar skipped')==c[3],('skip case %d reason mismatch'):format(i))
+		if c[2]~='PASS' then assert(not r.comparable,'skipped or failed span comparable') end
+	end
+	local r=latency.evaluate(job({span('cli-rar','execute',0,1,{exit_code=77,skip_exit=77}),span('cli-x','execute',1,2,{exit_code=1})}),policy)
+	assert(r.correctness=='FAIL','a skip must not mask a real failure')
+end
+
 -- Bad clocks and changed sources invalidate latency, not silently.
 do
 	local r=latency.evaluate(job({span('t','execute',5,4)}),policy)

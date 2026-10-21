@@ -86,6 +86,19 @@ assert(r.rc==127,'spawn failure not 127')
 r,record=finish('failing',{'--correctness','pass'})
 assert(r.rc==1 and record.correctness=='ERROR' and record.comparable==false,'failing spans counted as a pass')
 
+-- A declared skip exit passes through unchanged and makes the job INCOMPLETE.
+begin('skipping')
+r=span('skipping','cli-rar','execute',{'sh','-c','exit 77'},{'--skip-exit','77'})
+assert(r.rc==77,'skip exit not passed through: '..tostring(r.rc))
+r,record=finish('skipping',{'--correctness','pass'})
+assert(r.rc==1 and record.correctness=='INCOMPLETE' and record.latency=='UNMEASURED','declared skip did not read INCOMPLETE')
+local stored_skip=slurp(history..'/latency_fixture.latency--skipping.ndjson')
+assert(stored_skip and stored_skip:find('"skip_exit":77',1,true) and stored_skip:find('"exit_code":77',1,true),'stored record lacks real exit and declared skip code')
+for _,bad in ipairs({'0','256','-1','x','7.5'}) do
+	r=span('skipping','bad','execute',{'true'},{'--skip-exit',bad})
+	assert(r.rc==2,'invalid --skip-exit accepted: '..bad)
+end
+
 -- An incomplete inventory is not a pass.
 begin('partial')
 span('partial','unit tests','execute',{'luajit','-e',''})

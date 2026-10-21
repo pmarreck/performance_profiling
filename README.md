@@ -131,6 +131,8 @@ performance-profile latency finish --job "$job" --correctness pass --tests-decla
 `span` runs the command with inherited stdio and returns its exit status
 (128+n for a signal, 127 if it cannot start); it records only the span's name,
 kind, monotonic times, UTC start and exit status, never argv or environment.
+`--skip-exit 77` declares the command's skip code: that exit is passed through
+and recorded as is, and reads as a skip (job `INCOMPLETE`) rather than a failure.
 Kinds are `queue setup dependency nix_eval compile execute mixed deliver other`.
 Spans of one kind are measured as an interval union; summed time is kept
 separately. Time no span covers is `unattributed`. The engine's own begin,

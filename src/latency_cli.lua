@@ -18,8 +18,9 @@ local function now_ns() return tonumber(uv.hrtime()) end
 local USAGE=[[usage: performance-profile latency begin|span|finish [options]
   begin  --job ID [--config PATH]          Start a job: timestamp and source identity
   span   --job ID --name NAME --kind KIND [--fresh true|false] [--cache hit|miss|partial|unknown]
-         [--status unknown | -- COMMAND...]
-                                           Run COMMAND with stdio and exit status passed through
+         [--skip-exit CODE] [--status unknown | -- COMMAND...]
+                                           Run COMMAND with stdio and exit status passed through;
+                                           exit CODE (1-255, e.g. 77) records a skip: INCOMPLETE
   finish --job ID --correctness pass|fail|incomplete|error [--config PATH] [--history-url URL]
          [--suite NAME] [--profile NAME] [--concurrency N] [--notify-state PATH]
          [--tests-declared N] [--tests-executed N] [--tests-skipped N] [--tests-failed N]
@@ -82,9 +83,14 @@ local function span(options,command)
 	if not options.job or not options.name or not options.kind then return 2,'--job, --name and --kind required' end
 	if not latency.kinds[options.kind] or options.kind=='instrumentation' then return 2,'invalid kind '..options.kind end
 	if options.fresh and options.fresh~='true' and options.fresh~='false' then return 2,'--fresh must be true or false' end
+	local skip_exit
+	if options.skip_exit then
+		skip_exit=tonumber(options.skip_exit)
+		if not options.skip_exit:match('^%d+$') or skip_exit<1 or skip_exit>255 then return 2,'--skip-exit must be an exit code 1-255' end
+	end
 	local path=job_path(options.job)
 	if not uv.fs_lstat(path) then return 1,'job '..options.job..' has no begin; run latency begin first' end
-	local s={type='span',name=options.name,kind=options.kind,cache=options.cache,fresh=options.fresh and options.fresh=='true' or nil,wrapper_start_ns=started_ns}
+	local s={type='span',name=options.name,kind=options.kind,cache=options.cache,fresh=options.fresh and options.fresh=='true' or nil,skip_exit=skip_exit,wrapper_start_ns=started_ns}
 	if options.status=='unknown' then
 		if command then return 2,'an unknown span runs no command' end
 		s.status='unknown'; s.wrapper_end_ns=now_ns(); append(path,s); return 0
@@ -169,7 +175,7 @@ local function finish(options)
 	local history=storage:read_latency()
 	local phases={{name='begin',kind='instrumentation',status='measured',start_ns=b.begin_ns,end_ns=b.identity_end_ns}}
 	for _,s in ipairs(spans) do
-		local p={name=s.name,kind=s.kind,status=s.status,start_ns=s.start_ns,end_ns=s.end_ns,exit_code=s.exit_code,signal=s.signal,spawn_error=s.spawn_error,fresh=s.fresh,cache=s.cache,start_utc=s.start_utc}
+		local p={name=s.name,kind=s.kind,status=s.status,start_ns=s.start_ns,end_ns=s.end_ns,exit_code=s.exit_code,signal=s.signal,spawn_error=s.spawn_error,skip_exit=s.skip_exit,fresh=s.fresh,cache=s.cache,start_utc=s.start_utc}
 		phases[#phases+1]=p
 		-- Wrapper time around each child is instrumentation overhead, kept visible.
 		if s.status=='measured' then
@@ -205,7 +211,7 @@ end
 function M.main(args)
 	local verb=table.remove(args,1)
 	if verb==nil or verb=='--help' or verb=='-h' then io.write(USAGE); return verb and 0 or 2 end
-	local keys={['--job']='job',['--config']='config',['--history-url']='history_url',['--name']='name',['--kind']='kind',['--fresh']='fresh',['--cache']='cache',['--status']='status',['--correctness']='correctness',['--suite']='suite',['--profile']='profile',['--concurrency']='concurrency',['--notify-state']='notify_state',['--tests-declared']='tests_declared',['--tests-executed']='tests_executed',['--tests-skipped']='tests_skipped',['--tests-failed']='tests_failed'}
+	local keys={['--job']='job',['--config']='config',['--history-url']='history_url',['--name']='name',['--kind']='kind',['--fresh']='fresh',['--cache']='cache',['--status']='status',['--skip-exit']='skip_exit',['--correctness']='correctness',['--suite']='suite',['--profile']='profile',['--concurrency']='concurrency',['--notify-state']='notify_state',['--tests-declared']='tests_declared',['--tests-executed']='tests_executed',['--tests-skipped']='tests_skipped',['--tests-failed']='tests_failed'}
 	local options,command=parse(args,keys,{})
 	if not options then io.stderr:write(command..'\n'); return 2 end
 	local handlers={begin=begin,span=span,finish=finish}

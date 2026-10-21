@@ -50,7 +50,10 @@ function M.evaluate(job,policy)
 		kinds[p.kind]=k
 		if p.spawn_error then verdict=worst(verdict,'ERROR'); why[#why+1]=p.name..' could not start' end
 		if p.timed_out then verdict=worst(verdict,'ERROR'); why[#why+1]=p.name..' timed out' end
-		if (p.exit_code and p.exit_code~=0) or (p.signal and p.signal~=0) then verdict=worst(verdict,'FAIL'); why[#why+1]=p.name..' exited unsuccessfully' end
+		local signaled=p.signal and p.signal~=0
+		if p.skip_exit and p.exit_code==p.skip_exit and not signaled and not p.spawn_error then
+			verdict=worst(verdict,'INCOMPLETE'); why[#why+1]=p.name..' skipped (exit '..p.exit_code..')'
+		elseif (p.exit_code and p.exit_code~=0) or signaled then verdict=worst(verdict,'FAIL'); why[#why+1]=p.name..' exited unsuccessfully' end
 		if p.status=='unknown' then
 			k.unknown=k.unknown+1
 			if p.kind=='execute' or p.kind=='mixed' then exact=false; reasons[#reasons+1]=p.name..' execution time unknown' end
