@@ -62,6 +62,11 @@ Also added October 2, 2026: an optional per-case odd `processes` count gates on
 the median of several fresh processes and records them all; the source
 snapshot is taken once per run rather than around each case.
 
+Added October 20, 2026: an optional per-case `timeout_ms` (1..3600000, default
+30000) sets the per-process kill deadline. The default is applied at use, not
+written into the validated configuration, so configurations without the field
+keep their source digest; every record stores the effective deadline.
+
 ## Retry and approval
 
 An otherwise valid timing deviation or noisy timing sweep gets exactly one

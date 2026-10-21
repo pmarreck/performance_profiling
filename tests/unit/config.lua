@@ -49,4 +49,20 @@ do
 	p_cfg.cases[1].processes=3; p_cfg.cases[1].metric='startup_ns'; p_cfg.cases[1].comparison='absolute'; p_cfg.cases[1].sizes={1}; p_cfg.cases[1].ready_marker='ready'
 	assert(not pcall(config.validate,p_cfg),'processes accepted on a startup case')
 end
-print('PASS: configuration, precedence, argv, epoch, cores and processes contracts')
+-- Optional per-case timeout_ms: integer milliseconds in 1..3600000. An absent
+-- value stays absent in the validated configuration (the source digest hashes
+-- it), and the 30 s default applies where the deadline is used.
+do
+	local t_cfg={schema='performance-project/v1',project='pilot',history_url='file:///tmp/history',identity={runtime='LuaJIT',build_mode='optimized',concurrency=1},cases={{cores=1,name='linear',mode='cg',metric='cpu_ns',command={'echo'},sizes={10,20},bounds={1.8,2.2}}}}
+	local validated=config.validate(t_cfg)
+	assert(validated.cases[1].timeout_ms==nil,'absent timeout_ms was written into the validated configuration')
+	assert(config.deadline_ms(validated.cases[1])==30000,'default deadline is not 30000 ms')
+	for _,bad in ipairs({0,-1,1.5,'100',3600001,0/0,math.huge}) do t_cfg.cases[1].timeout_ms=bad; assert(not pcall(config.validate,t_cfg),'invalid timeout_ms accepted: '..tostring(bad)) end
+	for _,good in ipairs({1,250,3600000}) do
+		t_cfg.cases[1].timeout_ms=good
+		local ok,v=pcall(config.validate,t_cfg)
+		assert(ok,'valid timeout_ms rejected: '..good)
+		assert(config.deadline_ms(v.cases[1])==good,'declared deadline not used: '..good)
+	end
+end
+print('PASS: configuration, precedence, argv, epoch, cores, processes and deadline contracts')

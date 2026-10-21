@@ -52,7 +52,7 @@ Exit 0 pass/approved, 1 failure/error, 2 usage, 3 unbaselined/inconclusive.
 			local encoded={}; for j,a in ipairs(r.command) do encoded[j]=enc.encode(a) end
 			r.command=encoded; r.command_encoding={name=enc.name,map_sha256=enc.map_sha256}
 			-- The full definition stores no duplicate raw argv bytes.
-			r.definition={name=r.case,metric=r.metric,mode=r.mode,sizes=r.definition.sizes,bounds=r.definition.bounds,policy=r.policy}
+			r.definition={name=r.case,metric=r.metric,mode=r.mode,sizes=r.definition.sizes,bounds=r.definition.bounds,policy=r.policy,timeout_ms=config.deadline_ms(r.definition)}
 		end
 		storage:write(r)
 	end,now=provenance.now,id=provenance.id,
@@ -77,7 +77,7 @@ Exit 0 pass/approved, 1 failure/error, 2 usage, 3 unbaselined/inconclusive.
 				argv=cpuset.pin(argv,list); cpus_text=cpuset.format(list)
 			end
 			for j=1,(c.metric=='startup_ns' and 5 or c.processes) do
-				local r=process.run(argv,{cwd=root,ready_marker=c.ready_marker,env={PERFORMANCE_CORES=tostring(c.cores)}})
+				local r=process.run(argv,{cwd=root,ready_marker=c.ready_marker,timeout_ms=config.deadline_ms(c),env={PERFORMANCE_CORES=tostring(c.cores)}})
 				if r.rc~=0 or r.signal~=0 or r.timed_out then return {schema='performance-measurement/v1',correct=false,process=r} end
 				if r.stderr:find('DEBUG BUILD',1,true) then return {schema='performance-measurement/v1',correct=false,process=r} end
 				local payload=r.stdout

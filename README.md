@@ -101,6 +101,13 @@ are keyed by code addresses). A case may declare `processes`, an odd count
 one by total metric across sizes, keeping every process's measurement in the
 record (`processes`, `selected_process`). Startup cases already spawn five.
 
+### Deadline per process
+
+Each spawned process is killed after `timeout_ms` (integer milliseconds,
+1..3600000, default 30000) and the case is recorded as incorrect. Every record's
+`definition.timeout_ms` holds the effective deadline. This is a hang guard, not a
+performance bound; size it well above the slowest legitimate process.
+
 The source tree is snapshotted once before the first case and once after the
 last; a change anywhere in the run invalidates every case measured in it, and
 records are written only after that check.

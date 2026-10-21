@@ -2,6 +2,15 @@
 
 Approved contract: docs/CONTRACT.md. One complete entry point: ./test.
 
+## Owner handoff 2026-10-20 (priority order)
+
+- [x] Refresh flake pins (nixpkgs-unstable head, printable_binary cdefa95, pin dotfiles 20184a1), pass ./test and Nix checks, push yolo, reply to jpegz and corruption_reader with the SHA. (done 2026-10-20 21:58 EDT; 01ae85b)
+- [x] Upstream per-case `timeout_ms` from random's repo-local patch, test-first, without mutating validated config (keeps existing source digests); record the effective deadline per observation. (done 2026-10-20 22:05 EDT)
+- [ ] Feedback-latency pilot for Validate: agree a phase-record contract, then a pure core for interval-union phases, budget verdicts and debounced summaries, plus a CLI that stores latency records apart from cg/mg baselines (context: docs/plan_context/feedback_latency.md).
+- [ ] Measure the latency instrumentation's own overhead (snapshot hashing, history write) and report it with the tested revision.
+- [ ] Mechatron Prime CI onboarding: choose existing flake attributes, commit .mechatron-prime/targets, converge the webhook and verify the exact pushed commit.
+- [ ] Agree hook placement for latency summaries with Turing before touching any agent-global configuration.
+
 ## Next adoption
 
 - [ ] Integrate one real decoder benchmark through the shared CLI and its complete ./test, preserving owner-approved baseline initialization.
@@ -11,7 +20,6 @@ Approved contract: docs/CONTRACT.md. One complete entry point: ./test.
 
 ## First implementation
 
-- [x] Prove baseline selection, two-sided bounds and retry isolation; add explicit epochs, malformed-history rejection and unchanged source/cohort job identities (done 2026-10-02 14:04 EDT; 0101c3e).
 - [x] Implement atomic project-named file:// records with concurrent-write and immutable identity checks (done 2026-10-02 14:04 EDT; 0101c3e).
 - [x] Add CLI, injected adapters, complete real cg/mg lifecycle, skipped-work oracle witness and distinct code-statistics/source identity (done 2026-10-02 14:04 EDT; 0101c3e).
 - [x] Add pinned Nix packaging and native Linux/Mac checks; record measured suite budget and platform/deployment limits in docs/VERIFICATION.md (done 2026-10-02 14:04 EDT; 0101c3e).

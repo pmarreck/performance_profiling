@@ -1,4 +1,6 @@
 local M={}
+M.default_deadline_ms=30000
+M.max_deadline_ms=3600000
 local metrics={operations=true,cpu_ns=true,wall_ns=true,peak_bytes=true,allocation_count=true,total_bytes=true,startup_ns=true}
 local function name(n) return type(n)=='string' and #n<=100 and not n:find('--',1,true) and n:match('^[A-Za-z0-9_%-]+$')~=nil end
 M.name=name
@@ -38,9 +40,14 @@ function M.validate(cfg)
 		assert(type(c.processes)=='number' and c.processes>=1 and c.processes%1==0 and c.processes%2==1,'processes must be an odd positive integer')
 		assert(c.metric~='startup_ns' or c.processes==1,'startup cases already spawn five processes; processes must be 1')
 		assert(type(c.cores)=='number' and c.cores>=1 and c.cores%1==0,'cores must be a positive integer: 1 for single-core, more for multicore')
+		assert(c.timeout_ms==nil or (number(c.timeout_ms) and c.timeout_ms>=1 and c.timeout_ms<=M.max_deadline_ms and c.timeout_ms%1==0),'timeout_ms must be integer milliseconds in 1..'..M.max_deadline_ms)
 	end
 	return cfg
 end
+-- Per-process kill deadline for a case. The default is applied here rather
+-- than written into the validated configuration, whose bytes feed the source
+-- digest, so existing configurations keep their source identity.
+function M.deadline_ms(case) return case.timeout_ms or M.default_deadline_ms end
 function M.history_url(cfg,options,env)
 	return options.history_url or env.PERFORMANCE_HISTORY_URL or cfg.history_url
 end
