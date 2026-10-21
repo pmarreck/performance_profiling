@@ -56,6 +56,23 @@ The package check reconstructs a private Git fixture because Nix sources omit
 `.git`. Real pilot history and approvals use private temporary directories.
 Expected process errors are captured and asserted rather than printed as warnings.
 
+## Latency instrumentation overhead, October 20, 2026
+
+Measured on the x86_64 Linux development host, three runs of a fixture job of
+20 wrapped `luajit -e ""` spans against 20 bare spawns (41-42 ms):
+
+| Cost | Measured |
+| --- | --- |
+| `latency begin` (tree identity + scratch file) | 17-21 ms |
+| 20 wrapped spans | 131-156 ms, so 4.5-5.7 ms per span over a bare spawn |
+| `latency finish` (identity, history read, evaluation, write) | 26-28 ms |
+| history record write | 7.4-8.1 ms |
+| tree identity on a 2,681-file consuming checkout | 23-36 ms |
+
+Most per-span cost is LuaJIT startup before the wrapper's first timestamp; it is
+reported as unattributed time. Loading the printable-binary encoding map cost
+4.9 ms per span until the span path stopped loading it.
+
 ## Boundaries
 
 No production baseline was automatically approved. No whole-fleet integration,

@@ -123,6 +123,19 @@ external history writes run outside the build sandbox. A cached check is prior
 evidence, not a measurement of today's host. CI and local use the same pipeline.
 Do not world-write history or grant all users access; provision the actual runner.
 
+## Test feedback latency
+
+Added October 20, 2026 for an owner-approved pilot with one consuming project.
+Test execution targets 1 s with a 5 s budget on declared hardware; compilation
+is recorded separately and excluded from the budget. An overrun is a warning,
+not a kill deadline, until a project enables enforcement after measuring a real
+baseline. Correctness and latency verdicts are independent; failed, incomplete,
+unstartable, timed-out, cached, mixed, unknown, clock-error or source-changed
+work never reads as a fresh pass within budget. Records use their own schema
+(`performance-latency/v1`) and filename namespace and never enter cg/mg
+baselines. No argv or environment is stored. Agent hook placement for the
+summary is not yet decided and nothing is claimed deployed.
+
 ## Evidence and adoption
 
 Tests inject measurement samples, clocks, processes and storage. Real-adapter tests

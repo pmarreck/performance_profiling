@@ -48,6 +48,20 @@ end
 -- than written into the validated configuration, whose bytes feed the source
 -- digest, so existing configurations keep their source identity.
 function M.deadline_ms(case) return case.timeout_ms or M.default_deadline_ms end
+-- Projects that only record test feedback latency need no cg/mg cases.
+-- Budget policy defaults to a 1 s target and 5 s budget, unenforced.
+function M.validate_latency(cfg)
+	assert(type(cfg)=='table' and cfg.schema=='performance-project/v1','unsupported project schema')
+	assert(name(cfg.project),'unsafe project name')
+	assert(type(cfg.history_url)=='string','project history_url required')
+	local l=cfg.latency or {}
+	local out={target_ms=l.target_ms==nil and 1000 or l.target_ms,budget_ms=l.budget_ms==nil and 5000 or l.budget_ms,enforce=l.enforce}
+	if out.enforce==nil then out.enforce=false end
+	for _,k in ipairs({'target_ms','budget_ms'}) do assert(number(out[k]) and out[k]>=1 and out[k]%1==0,'latency '..k..' must be positive integer milliseconds') end
+	assert(out.target_ms<=out.budget_ms,'latency target must not exceed budget')
+	assert(type(out.enforce)=='boolean','latency enforce must be true or false')
+	return {schema=cfg.schema,project=cfg.project,history_url=cfg.history_url,latency=out}
+end
 function M.history_url(cfg,options,env)
 	return options.history_url or env.PERFORMANCE_HISTORY_URL or cfg.history_url
 end

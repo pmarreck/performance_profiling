@@ -112,6 +112,51 @@ The source tree is snapshotted once before the first case and once after the
 last; a change anywhere in the run invalidates every case measured in it, and
 records are written only after that check.
 
+## Test feedback latency (pilot)
+
+`performance-profile latency` times a project's correctness suite. Execution has
+a 1 s target and a 5 s budget by default. Compilation is excluded from that
+budget but recorded, along with total time from `begin` to `finish`.
+
+```bash
+performance-profile latency begin  --job "$job"
+performance-profile latency span   --job "$job" --name build --kind compile -- ./build --test
+performance-profile latency span   --job "$job" --name unit  --kind execute -- ./tests/unit/run
+performance-profile latency span   --job "$job" --name zig   --kind compile --status unknown
+performance-profile latency finish --job "$job" --correctness pass --tests-declared 40 --tests-executed 40
+```
+
+`span` runs the command with inherited stdio and returns its exit status
+(128+n for a signal, 127 if it cannot start); it records only the span's name,
+kind, monotonic times, UTC start and exit status, never argv or environment.
+Kinds are `queue setup dependency nix_eval compile execute mixed deliver other`.
+Spans of one kind are measured as an interval union; summed time is kept
+separately. Time no span covers is `unattributed`. The engine's own begin,
+wrapper and finish time is recorded as `instrumentation`.
+
+Correctness (`PASS`, `INCOMPLETE`, `FAIL`, `ERROR`) and latency are separate
+verdicts. Latency is `WITHIN_TARGET`, `WITHIN_BUDGET`, `OVER_BUDGET` or
+`UNMEASURED`. Execution hidden in `mixed`, cached (`--fresh false`) or unknown
+spans makes the figure a lower bound, which can prove an overrun but never meet
+the budget. A source change between `begin` and `finish` (HEAD, tracked diff, or
+untracked unignored paths with their size and mtime) makes the job UNMEASURED;
+do not redirect output into the measured tree. Finish exits 1 when correctness
+is not PASS; an overrun only warns unless the project sets `latency.enforce`.
+
+```json
+{"schema":"performance-project/v1","project":"example","history_url":"file:///srv/history",
+ "latency":{"target_ms":1000,"budget_ms":5000,"enforce":false}}
+```
+
+Records are `<project>.latency--<job>.ndjson` in the same history directory.
+The cg/mg reader's `<project>--` prefix never matches them, so engines that
+predate latency records read a shared directory unchanged. A comparable
+reference is the median of the five most recent comparable records with the
+same hardware, suite, profile and concurrency. `--notify-state PATH` debounces
+the stderr notice: details for failures and for first or worsening (more than
+10%) overruns, at most three hourly reminders, a single line otherwise. The
+durable record and exit status never depend on it.
+
 ## Adapter protocol
 
 The command writes one JSON object conforming to [the protocol](docs/PROTOCOL.md).

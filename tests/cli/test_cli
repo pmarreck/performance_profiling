@@ -5,6 +5,11 @@ out='' err='' rc=0
 failures=0
 capture ./bin/performance-profile --help
 if [ "$rc" != 0 ] || [[ "$out" != *'--history-url'* ]] || [[ "$out" != *'accept'* ]]; then printf 'FAIL: help\n'; failures=$((failures+1)); fi
+if [[ "$out" != *'latency'* ]]; then printf 'FAIL: help omits latency verb\n'; failures=$((failures+1)); fi
+capture ./bin/performance-profile latency --help
+if [ "$rc" != 0 ] || [[ "$out" != *'--correctness'* ]]; then printf 'FAIL: latency help\n'; failures=$((failures+1)); fi
+capture ./bin/performance-profile latency span --job x --name y --kind nonsense -- true
+if [ "$rc" != 2 ] || [ -z "$err" ]; then printf 'FAIL: latency usage error\n'; failures=$((failures+1)); fi
 capture ./bin/performance-profile --about
 if [ "$rc" != 0 ] || [[ "$out" != performance-profile* ]] || [[ "$out" == *$'\n'* ]]; then printf 'FAIL: about\n'; failures=$((failures+1)); fi
 capture ./bin/performance-profile --no-such-flag

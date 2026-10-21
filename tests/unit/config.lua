@@ -65,4 +65,17 @@ do
 		assert(config.deadline_ms(v.cases[1])==good,'declared deadline not used: '..good)
 	end
 end
-print('PASS: configuration, precedence, argv, epoch, cores, processes and deadline contracts')
+-- Latency-only projects need no cg/mg cases; the budget policy defaults to
+-- 1 s target / 5 s budget and enforcement stays off until chosen.
+do
+	local l=config.validate_latency({schema='performance-project/v1',project='validate',history_url='file:///tmp/h'})
+	assert(l.latency.target_ms==1000 and l.latency.budget_ms==5000 and l.latency.enforce==false,'latency defaults')
+	l=config.validate_latency({schema='performance-project/v1',project='validate',history_url='file:///tmp/h',latency={target_ms=2000,budget_ms=2000,enforce=true}})
+	assert(l.latency.target_ms==2000 and l.latency.enforce==true)
+	for _,bad in ipairs({{target_ms=6000},{budget_ms=0},{target_ms=1.5},{budget_ms='5000'},{enforce='yes'},{target_ms=-1}}) do
+		assert(not pcall(config.validate_latency,{schema='performance-project/v1',project='validate',history_url='file:///tmp/h',latency=bad}),'invalid latency policy accepted')
+	end
+	assert(not pcall(config.validate_latency,{schema='performance-project/v1',project='../x',history_url='file:///tmp/h'}),'unsafe project accepted')
+	assert(not pcall(config.validate_latency,{schema='performance-project/v1',project='validate'}),'missing history_url accepted')
+end
+print('PASS: configuration, precedence, argv, epoch, cores, processes, deadline and latency contracts')

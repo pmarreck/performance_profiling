@@ -71,6 +71,17 @@ function M.snapshot(root,cfg)
 	local digest=process.sha256(table.concat(contents)..json.encode(binaries)..json.encode(cfg))
 	return digest,{git={head=head,dirty_code=changes},binaries=binaries,cwd=enc.encode(root),encoding={name=enc.name,map_sha256=enc.map_sha256}}
 end
+-- Cheap drift check for latency jobs: HEAD, the full tracked diff and each
+-- untracked, unignored path with its size and mtime. Contents of untracked
+-- files are not hashed, so an edit that keeps size and mtime goes unseen.
+function M.tree_identity(root)
+	local parts={git(root,{'rev-parse','HEAD'}),git(root,{'diff','HEAD','--binary','--no-ext-diff','--no-renames'})}
+	for _,p in ipairs(entries(git(root,{'ls-files','--others','--exclude-standard','-z'}))) do
+		local s=uv.fs_lstat(root..'/'..p)
+		parts[#parts+1]=#p..':'..p..':'..(s and (s.size..':'..s.mtime.sec..'.'..s.mtime.nsec) or 'gone')
+	end
+	return process.sha256(table.concat(parts,'\0')),parts[1]:gsub('%s+$','')
+end
 function M.identity(cfg,case)
 	local cpus=uv.cpu_info()
 	local osname=uv.os_uname()
