@@ -1,0 +1,4 @@
+# Mechatron Prime CI builds these flake attributes at each pushed commit.
+# The package check phase runs the complete ./test; checks.package is the same derivation.
+packages.x86_64-linux.default
+checks.x86_64-linux.package
