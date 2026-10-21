@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Devshell re-entry for root entry points: outside `nix develop` (IN_NIX_SHELL
+# unset) a script re-executes itself through the project flake's devShell with
+# its arguments intact and says so on stderr; inside it runs unchanged; with no
+# nix available it fails loudly instead of running against the wrong toolchain.
+set -u
+source "${CAPTURE_LIB:-$HOME/dotfiles/bin/src/capture.bash}"
+root="$(cd "$(dirname "$0")/../.." && pwd)"
+out='' err='' rc=0
+failures=0
+fail() { printf 'FAIL: %s\n' "$1"; failures=$((failures+1)); }
+fixture="$(mktemp -d "${TMPDIR:-/tmp}/devshell reentry.XXXXXX")"
+mkdir -p "$fixture/fakebin" "$fixture/empty"
+printf '#!%s\n' "$BASH" > "$fixture/fakebin/nix"
+cat >> "$fixture/fakebin/nix" <<'NIX'
+printf '%s\n' "$@" > "$DEVSHELL_RECORD"
+exit 7
+NIX
+chmod +x "$fixture/fakebin/nix"
+printf '#!%s\n' "$BASH" > "$fixture/probe"
+cat >> "$fixture/probe" <<PROBE
+source "$root/scripts/reenter-devshell.bash"
+reenter_devshell "$root" "\$0" "\$@"
+printf 'ran:%s|' "\$@"
+PROBE
+chmod +x "$fixture/probe"
+export DEVSHELL_RECORD="$fixture/record"
+
+capture env -u IN_NIX_SHELL -u NIX_BUILD_TOP PATH="$fixture/fakebin:$PATH" "$fixture/probe" 'a b' c
+expected="$(printf '%s\n' develop "$root" -c "$fixture/probe" 'a b' c)"
+[ "$rc" = 7 ] || fail "re-entry did not exec nix (rc=$rc)"
+[ -z "$out" ] || fail "script body ran before re-entry: $out"
+[ "$(cat "$fixture/record" 2>/dev/null)" = "$expected" ] || fail "nix develop argv wrong: $(cat "$fixture/record" 2>/dev/null)"
+[ "$err" = "heads up: $fixture/probe re-entered itself in nix develop mode" ] || fail "re-entry notice wrong: $err"
+
+: > "$fixture/record"
+capture env IN_NIX_SHELL=impure PATH="$fixture/fakebin:$PATH" "$fixture/probe" 'a b' c
+[ "$rc" = 0 ] && [ "$out" = 'ran:a b|ran:c|' ] && [ -z "$err" ] || fail "inside the devShell the script did not run unchanged: rc=$rc out=$out err=$err"
+[ ! -s "$fixture/record" ] || fail "nix invoked from inside the devShell"
+
+capture env -u IN_NIX_SHELL -u NIX_BUILD_TOP PATH="$fixture/empty" "$BASH" "$fixture/probe" x
+[ "$rc" = 1 ] && [ -z "$out" ] && [[ "$err" == *'nix'* ]] || fail "missing nix did not fail loudly: rc=$rc out=$out err=$err"
+
+: > "$fixture/record"
+capture env -u IN_NIX_SHELL NIX_BUILD_TOP="$fixture" PATH="$fixture/fakebin:$PATH" "$fixture/probe" x
+[ "$rc" = 0 ] && [ "$out" = "ran:x|" ] && [ -z "$err" ] && [ ! -s "$fixture/record" ] || fail "inside a Nix build the script tried to re-enter: rc=$rc out=$out err=$err"
+
+for entry in test bm cg mg; do
+	grep -q "^reenter_devshell " "$root/$entry" || fail "root entry point $entry does not re-enter the devShell"
+done
+
+if [ "$failures" = 0 ]; then printf 'PASS: devShell re-entry\n'; fi
+exit "$failures"

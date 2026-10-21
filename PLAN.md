@@ -11,6 +11,7 @@ Approved contract: docs/CONTRACT.md. One complete entry point: ./test.
 - [ ] Validate adoption: pin this engine, wrap ./test phases, report the first instrumented full gate; then reassess per-span startup cost if a sub-second suite adopts it.
 	- [x] Propose to Validate a split of its Zig unit-test phase: build test binaries without running them (`./build --test`, compile span), then run them outside Nix (execute span), so execution time stops being mixed/UNMEASURED (context: docs/plan_context/feedback_latency.md). (done 2026-10-21 13:40 EDT; adopted by Validate, lands after its adoption commit)
 - [x] Mechatron Prime CI onboarding: choose existing flake attributes, commit .mechatron-prime/targets, converge the webhook and verify the exact pushed commit. (done 2026-10-20 22:26 EDT; af38b15 success, badge PASSING)
+- [x] Root entry points re-enter `nix develop` themselves when started outside it, announcing it on stderr; no-op inside a devShell or Nix build. (done 2026-10-21 13:50 EDT)
 - [ ] Agree hook placement for latency summaries with Turing before touching any agent-global configuration.
 
 ## Next adoption
@@ -22,7 +23,6 @@ Approved contract: docs/CONTRACT.md. One complete entry point: ./test.
 
 ## First implementation
 
-- [x] (2026-10-02 19:40 EDT) Noisy timing sweeps are INCONCLUSIVE (retryable) before declared-shape checks; found when a load spike turned a linear sweep into a final SHAPE_FAIL.
 - [x] (2026-10-02 19:45 EDT) Per-case `cores` (required), taskset pinning on Linux, `PERFORMANCE_CPUS` override, `PERFORMANCE_CORES` to the command, cores and affinity method in the cohort, exact CPU list in each record.
 - [ ] macOS: no affinity API; multicore counts there are unenforced. Look at thread-policy hints if Mac cohorts need it.
 - [x] (2026-10-02 22:20 EDT) Source snapshot once per run (before the first case, after the last); records written after the check.

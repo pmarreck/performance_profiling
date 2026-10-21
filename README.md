@@ -207,7 +207,10 @@ post-build runner or whole-system activation is performed by this project's buil
 
 ## Tests and limits
 
-`nix develop -c ./test` is the complete suite. It includes injected policy/epoch
+`./test` is the complete suite. Started outside the flake devShell, `./test`,
+`./bm`, `./cg` and `./mg` re-execute themselves through `nix develop` (one
+"heads up" line on stderr), so they always run against the pinned toolchain;
+inside a devShell or a Nix build they run directly. The suite includes injected policy/epoch
 tests, baseline-contamination regression, nested-diagnostic exclusion, both drift
 directions, SD arithmetic, crossover, leak and noisy cases; real process/file
 adapters; and a complete real cg/mg lifecycle with approval in private temporary

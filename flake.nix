@@ -22,7 +22,7 @@
 					version = "0.1.0";
 					src = nixpkgs.lib.fileset.toSource {
 						root = ./.;
-						fileset = nixpkgs.lib.fileset.unions [ ./src ./bin ./tests ./test ./cg ./mg ./bm ./profiling.json ./LICENSE ];
+						fileset = nixpkgs.lib.fileset.unions [ ./src ./bin ./scripts ./tests ./test ./cg ./mg ./bm ./profiling.json ./LICENSE ];
 					};
 					nativeBuildInputs = tools pkgs ++ [ pkgs.makeWrapper ];
 					strictDeps = true;

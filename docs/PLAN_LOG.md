@@ -12,3 +12,4 @@ Completed PLAN.md items retired by plan-retire, oldest retirement first.
 ## Retired 2026-10-21
 
 - [x] [First implementation] Create the shared performance-profiling skill and consolidate active guidance after recoverable backups (done 2026-10-02 14:04 EDT; llm_skills 5068df8).
+- [x] [First implementation] (2026-10-02 19:40 EDT) Noisy timing sweeps are INCONCLUSIVE (retryable) before declared-shape checks; found when a load spike turned a linear sweep into a final SHAPE_FAIL.

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -u
 cd "$(dirname "$0")" || exit 1
+source ./scripts/reenter-devshell.bash
+reenter_devshell "$PWD" "$PWD/${0##*/}" "$@"
 failures=0
 if [ "${PERFORMANCE_MODULE_CONTRACT:-}" = passed ]; then
 	printf 'PASS: Nix history module evaluation contract\n'
@@ -11,5 +13,7 @@ fi
 for suite in tests/unit/core.lua tests/unit/cpus.lua tests/unit/config.lua tests/unit/runner.lua tests/unit/encoding.lua tests/unit/latency.lua tests/integration/storage.lua tests/integration/process.lua tests/integration/provenance.lua tests/integration/concurrent.lua tests/integration/processes.lua tests/integration/timeout.lua tests/integration/latency_cli.lua tests/integration/pilot.lua; do
 	if luajit "$suite"; then :; else failures=$((failures+1)); fi
 done
-if ./tests/cli/test_cli; then :; else failures=$((failures+1)); fi
+for suite in tests/cli/test_cli tests/cli/test_devshell; do
+	if "./$suite"; then :; else failures=$((failures+1)); fi
+done
 exit "$failures"
