@@ -17,6 +17,20 @@ Approved contract: docs/CONTRACT.md. One complete entry point: ./test.
 - [x] Let a span be recorded around time the recorder did not wrap (Validate: `nix develop` shell entry, 5.07 s cached, 167 s after an edit when the flake copies the tree), so it reads `setup` instead of hiding in `other`/`nix_eval`; `latency stamp` plus `span --since NS` (stateless; BDFN chose it). (done 2026-10-22 21:05 EDT)
 - [ ] Agree hook placement for latency summaries with Turing before touching any agent-global configuration.
 
+## Cross-platform build layout conformance (context: docs/plan_context/build_layout.md)
+
+- [ ] Settle the open decisions with BDFN: profile name, the generic bin/performance-profile role, and --all-plats behavior without remote builders.
+- [ ] Classifier test over a set of uname/Nix-system pairs: normalize to PF (linux-amd64, linux-arm64, macos-arm64), reject mswin-* and unknown pairs explicitly; then make ./build use it.
+- [ ] Publish to bin/<PF>/performance-profile and retain the Nix output at .nix-out/<PF>/<profile>; keep the Nix system spelling only at the nix build boundary.
+- [ ] Narrow .gitignore to /bin/<PF>/ directories and .nix-out/; keep tracked portable scripts visible.
+- [ ] Publication safety tests: a failed build leaves the previous entrypoint working; competing publications are serialized (lock), tested without sleeps.
+- [ ] ./build modes: optimized default, explicit --test/--debug semantics (or a documented "not applicable"), --all-plats/--all reporting unavailable platforms instead of a partial green, and the documented direct (non-Nix) command.
+- [ ] Add ./run (build if stale, then exec the exact published host command, preserving argv, stdin and exit status) with a CLI test.
+- [ ] Resolve the generic bin/performance-profile per the decision: optional Nix bootstrap fallback (tests for hashing, missing/broken links, concurrent first use, build failure) or move it off automatic PATH.
+- [ ] Inspect the published binary closure and header (not directory names) before claiming the PF; record exercised platforms honestly (Linux arm64 and macOS runtime pending native runs, mswin unsupported).
+- [ ] Update README, VERIFICATION.md and dirtree notes to the PF layout.
+- [ ] Coordinate the PATH cutover with the dotfiles owner; after verified resolution, retire bin/linux/x86_64 recoverably.
+
 ## Next adoption
 
 - [ ] Integrate one real decoder benchmark through the shared CLI and its complete ./test, preserving owner-approved baseline initialization.
