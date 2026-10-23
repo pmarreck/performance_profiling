@@ -99,6 +99,31 @@ for _,bad in ipairs({'0','256','-1','x','7.5'}) do
 	assert(r.rc==2,'invalid --skip-exit accepted: '..bad)
 end
 
+-- A stamped span covers time the recorder did not wrap, such as entering a
+-- shell that then runs the suite: stamp outside, record it from inside.
+local function stamp() local r=cli({'stamp'}); return r,r.stdout:match('^(%d+)\n$') end
+local early_r,early=stamp()
+assert(early_r.rc==0 and early,'stamp did not print a monotonic integer: '..early_r.stdout..early_r.stderr)
+begin('stamped')
+local _,since=stamp()
+assert(tonumber(since)>=tonumber(early),'stamps went backwards')
+span('stamped','unit tests','execute',{'luajit','-e',''})
+r=span('stamped','shell entry','setup',nil,{'--since',since})
+assert(r.rc==0 and r.stdout=='' and r.stderr=='','stamped span failed: '..r.stderr)
+for _,bad in ipairs({{'--since','x'},{'--since','-1'},{'--since','1.5'},{'--since',''},{'--since',early},{'--since',tostring(tonumber(since)+1e15)},{'--since',since,'--skip-exit','77'},{'--since',since,'--status','unknown'}}) do
+	r=span('stamped','bad','setup',nil,bad)
+	assert(r.rc==2,'invalid stamped span accepted: '..table.concat(bad,' '))
+end
+r=span('stamped','bad','setup',{'true'},{'--since',since})
+assert(r.rc==2,'stamped span with a command accepted')
+r,record=finish('stamped',{'--correctness','pass'})
+assert(r.rc==0 and record.correctness=='PASS' and record.latency=='WITHIN_TARGET','stamped job verdicts: '..r.stderr)
+local entry
+for _,p in ipairs(record.phases) do if p.name=='shell entry' and p.kind=='setup' then entry=p end end
+assert(entry and entry.start_ns==tonumber(since) and entry.end_ns>entry.start_ns,'stamped span not recorded from its stamp')
+assert(record.kinds.setup.elapsed_ns==entry.end_ns-entry.start_ns,'setup time not taken from the stamped span')
+for _,p in ipairs(record.phases) do assert(p.end_ns>=p.start_ns,'negative phase '..p.name) end
+
 -- An incomplete inventory is not a pass.
 begin('partial')
 span('partial','unit tests','execute',{'luajit','-e',''})

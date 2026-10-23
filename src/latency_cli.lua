@@ -15,12 +15,14 @@ local function utc()
 	return os.date('!%Y-%m-%dT%H:%M:%S',sec)..('.%03dZ'):format(math.floor(usec/1000))
 end
 local function now_ns() return tonumber(uv.hrtime()) end
-local USAGE=[[usage: performance-profile latency begin|span|finish [options]
+local USAGE=[[usage: performance-profile latency begin|stamp|span|finish [options]
   begin  --job ID [--config PATH]          Start a job: timestamp and source identity
+  stamp                                    Print the monotonic clock (ns) for a later span --since
   span   --job ID --name NAME --kind KIND [--fresh true|false] [--cache hit|miss|partial|unknown]
-         [--skip-exit CODE] [--status unknown | -- COMMAND...]
+         [--skip-exit CODE] [--status unknown | --since NS | -- COMMAND...]
                                            Run COMMAND with stdio and exit status passed through;
-                                           exit CODE (1-255, e.g. 77) records a skip: INCOMPLETE
+                                           exit CODE (1-255, e.g. 77) records a skip: INCOMPLETE;
+                                           --since records from a stamp (taken after begin) to now
   finish --job ID --correctness pass|fail|incomplete|error [--config PATH] [--history-url URL]
          [--suite NAME] [--profile NAME] [--concurrency N] [--notify-state PATH]
          [--tests-declared N] [--tests-executed N] [--tests-skipped N] [--tests-failed N]
@@ -92,10 +94,22 @@ local function span(options,command)
 	if not uv.fs_lstat(path) then return 1,'job '..options.job..' has no begin; run latency begin first' end
 	local s={type='span',name=options.name,kind=options.kind,cache=options.cache,fresh=options.fresh and options.fresh=='true' or nil,skip_exit=skip_exit,wrapper_start_ns=started_ns}
 	if options.status=='unknown' then
-		if command then return 2,'an unknown span runs no command' end
+		if command or options.since then return 2,'an unknown span runs no command and has no stamp' end
 		s.status='unknown'; s.wrapper_end_ns=now_ns(); append(path,s); return 0
 	end
 	if options.status then return 2,'only --status unknown is supported' end
+	if options.since then
+		-- Time the recorder did not wrap (e.g. entering a shell that then runs
+		-- the suite): from a stamp to this process's start, which is
+		-- system-wide monotonic on one host. A stamp older than the job's begin
+		-- is a stale value leaked from another run, not this job's time.
+		if command or skip_exit then return 2,'--since records no command and no exit status' end
+		local since=options.since:match('^%d+$') and tonumber(options.since)
+		local f=assert(io.open(path,'rb')); local b=json.decode(f:read('*l')); f:close()
+		if not since or since<b.begin_ns or since>started_ns then return 2,'--since must be a stamp taken after this job began' end
+		s.status='measured'; s.stamped=true; s.start_ns=since; s.end_ns=started_ns; s.wrapper_end_ns=now_ns()
+		append(path,s); return 0
+	end
 	if not command or #command==0 then return 2,'COMMAND required after --' end
 	local rc,signal
 	local spawn_args={}; for i=2,#command do spawn_args[i-1]=command[i] end
@@ -179,7 +193,8 @@ local function finish(options)
 		phases[#phases+1]=p
 		-- Wrapper time around each child is instrumentation overhead, kept visible.
 		if s.status=='measured' then
-			phases[#phases+1]={name=s.name..' wrapper',kind='instrumentation',status='measured',start_ns=s.wrapper_start_ns,end_ns=s.start_ns}
+			-- A stamped span ends where its recorder started: nothing precedes it.
+			if not s.stamped then phases[#phases+1]={name=s.name..' wrapper',kind='instrumentation',status='measured',start_ns=s.wrapper_start_ns,end_ns=s.start_ns} end
 			phases[#phases+1]={name=s.name..' wrapper',kind='instrumentation',status='measured',start_ns=s.end_ns,end_ns=s.wrapper_end_ns}
 		end
 	end
@@ -211,10 +226,10 @@ end
 function M.main(args)
 	local verb=table.remove(args,1)
 	if verb==nil or verb=='--help' or verb=='-h' then io.write(USAGE); return verb and 0 or 2 end
-	local keys={['--job']='job',['--config']='config',['--history-url']='history_url',['--name']='name',['--kind']='kind',['--fresh']='fresh',['--cache']='cache',['--status']='status',['--skip-exit']='skip_exit',['--correctness']='correctness',['--suite']='suite',['--profile']='profile',['--concurrency']='concurrency',['--notify-state']='notify_state',['--tests-declared']='tests_declared',['--tests-executed']='tests_executed',['--tests-skipped']='tests_skipped',['--tests-failed']='tests_failed'}
+	local keys={['--job']='job',['--config']='config',['--history-url']='history_url',['--name']='name',['--kind']='kind',['--fresh']='fresh',['--cache']='cache',['--status']='status',['--skip-exit']='skip_exit',['--since']='since',['--correctness']='correctness',['--suite']='suite',['--profile']='profile',['--concurrency']='concurrency',['--notify-state']='notify_state',['--tests-declared']='tests_declared',['--tests-executed']='tests_executed',['--tests-skipped']='tests_skipped',['--tests-failed']='tests_failed'}
 	local options,command=parse(args,keys,{})
 	if not options then io.stderr:write(command..'\n'); return 2 end
-	local handlers={begin=begin,span=span,finish=finish}
+	local handlers={begin=begin,stamp=function() io.write(('%.0f\n'):format(now_ns())); return 0 end,span=span,finish=finish}
 	if not handlers[verb] then io.stderr:write('unknown latency verb '..verb..'\n'..USAGE); return 2 end
 	local rc,message=handlers[verb](options,command)
 	if message then io.stderr:write('performance-profile latency: '..message..'\n') end

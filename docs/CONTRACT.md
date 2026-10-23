@@ -147,6 +147,11 @@ them outside the build (an `execute` span). A span may declare one skip exit
 code (`--skip-exit 77`, the automake convention). That exact unsignaled exit is
 recorded as a skip with its real exit status and makes the job INCOMPLETE; any
 other nonzero exit remains FAIL, and a skip never masks another span's failure.
+Added October 22, 2026: a span may instead run from a monotonic stamp
+(`latency stamp`, then `span --since NS`) to the start of the recording
+process, for time spent before the recorder can run, such as entering a
+development shell. The stamp must not predate the job's begin, and the span
+has no command or exit status. The recorder keeps no open-span state.
 
 ## Evidence and adoption
 

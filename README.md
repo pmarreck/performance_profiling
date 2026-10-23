@@ -133,6 +133,18 @@ performance-profile latency finish --job "$job" --correctness pass --tests-decla
 kind, monotonic times, UTC start and exit status, never argv or environment.
 `--skip-exit 77` declares the command's skip code: that exit is passed through
 and recorded as is, and reads as a skip (job `INCOMPLETE`) rather than a failure.
+Time the recorder cannot wrap, such as entering a shell that then runs the
+suite, is recorded from a stamp taken after `begin`:
+
+```bash
+stamp=$(performance-profile latency stamp)    # monotonic ns, before entering
+nix develop .#tests -c bash -c '
+  performance-profile latency span --job "$0" --name shell-entry --kind setup --since "$1"
+  ./tests/run' "$job" "$stamp"
+```
+
+The span ends when the recording process starts. A stamp older than the job's
+`begin` (for example one inherited from another run) is rejected.
 Kinds are `queue setup dependency nix_eval compile execute mixed deliver other`.
 Spans of one kind are measured as an interval union; summed time is kept
 separately. Time no span covers is `unattributed`. The engine's own begin,

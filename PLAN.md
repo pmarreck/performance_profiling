@@ -14,6 +14,7 @@ Approved contract: docs/CONTRACT.md. One complete entry point: ./test.
 	- [x] Propose to Validate a split of its Zig unit-test phase: build test binaries without running them (`./build --test`, compile span), then run them outside Nix (execute span), so execution time stops being mixed/UNMEASURED (context: docs/plan_context/feedback_latency.md). (done 2026-10-21 13:40 EDT; adopted by Validate, lands after its adoption commit)
 - [x] Mechatron Prime CI onboarding: choose existing flake attributes, commit .mechatron-prime/targets, converge the webhook and verify the exact pushed commit. (done 2026-10-20 22:26 EDT; af38b15 success, badge PASSING)
 - [x] Root entry points re-enter `nix develop` themselves when started outside it, announcing it on stderr; no-op inside a devShell or Nix build. (done 2026-10-21 13:50 EDT)
+- [x] Let a span be recorded around time the recorder did not wrap (Validate: `nix develop` shell entry, 5.07 s cached, 167 s after an edit when the flake copies the tree), so it reads `setup` instead of hiding in `other`/`nix_eval`; `latency stamp` plus `span --since NS` (stateless; BDFN chose it). (done 2026-10-22 21:05 EDT)
 - [ ] Agree hook placement for latency summaries with Turing before touching any agent-global configuration.
 
 ## Next adoption
@@ -26,4 +27,3 @@ Approved contract: docs/CONTRACT.md. One complete entry point: ./test.
 ## First implementation
 
 - [ ] macOS: no affinity API; multicore counts there are unenforced. Look at thread-policy hints if Mac cohorts need it.
-- [x] (2026-10-02 22:20 EDT) Optional per-case odd `processes`: median fresh process gates, all kept.
